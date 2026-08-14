@@ -25,3 +25,4 @@ cd ~/repos/my-utils && git pull && ./setup.sh
 ## Skills
 
 - `quick-summary` — one-paragraph recap of the current session.
+- `jot-down-task-github` — draft an item on the GitHub Projects V2 Kanban board.
