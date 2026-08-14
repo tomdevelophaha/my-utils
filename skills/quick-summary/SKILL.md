@@ -1,26 +1,28 @@
 ---
 name: my-utils:quick-summary
-description: Use when the user asks what we were just doing, for a quick recap, or to re-orient after returning to this session. Also invoked explicitly as /my-utils:quick-summary.
+description: Use when the user asks what we were just doing, for a quick recap, what's next, what still needs doing, or to re-orient after returning to this session. Also invoked explicitly as /my-utils:quick-summary.
 ---
 
 # Quick Summary
 
-Give a quick recap of what we were just doing — **one short, well-structured paragraph, nothing else**.
+Give a quick recap of what we were just doing, then the upcoming to-do list — nothing else.
 
 ## Rules
 
-- Exactly one paragraph: 3-5 simple sentences that flow together.
-- Plain, easy words. Straight to the point — no filler, no jargon.
-- No headers, no bullets, no tables, no sections.
-- Cover only the most recent work in this session (or the last thing before a pause/compact), not the whole session history.
-- Structure it as: what we were changing + why, or current state + immediate next step. End with the next step if there is one.
-- Do not list tool calls or every file path — mention at most one or two key ones.
+- Start with exactly one recap paragraph: 3-5 simple sentences on the most recent work (what we changed + why, or current state).
+- Then a bullet list of next steps: 3-6 items, verb-first, ordered by what unblocks what.
+- No headers, tables, or extra prose. No filler.
+- Recap covers only the most recent work, not the whole session. Mention at most one or two key file paths.
+- List only work still ahead, never what's already done.
 
 ## Example
 
-> We were switching the logging in `/api/chat` from pino to Axiom so prod logs ship reliably again. The code swap is done and committed. The one thing still unchecked is whether logs actually arrive in Axiom after a deploy. Next step is deploying, then looking for new entries in the Axiom dataset.
+> We switched logging in `/api/chat` from pino to Axiom so prod logs ship reliably again. The code swap is committed. Next:
+> - Deploy to Vercel
+> - Confirm logs arrive in Axiom
+> - Re-test token streaming on mobile
 
 Red flags — start over if you catch yourself doing these:
-- Writing a header, bullet list, or more than one paragraph
-- Padding with background or summarizing the whole session
-- Using complex words when simple ones say the same thing
+- More than one recap paragraph, or a missing bullet list
+- Padding the recap with whole-session history
+- Bullets that explain each item or include already-done work
