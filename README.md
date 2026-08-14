@@ -6,14 +6,14 @@ Personal Claude Code skills, version-controlled and symlinked into
 ## Install
 
 ```bash
-git clone git@github.com:tomdevelophaha/my-utils.git ~/repos/my-utils
-~/repos/my-utils/setup.sh
+git clone git@github.com:tomdevelophaha/my-utils.git ~/Desktop/Project/claude-skills
+~/Desktop/Project/claude-skills/setup.sh
 ```
 
 ## Sync
 
 ```bash
-cd ~/repos/my-utils && git pull && ./setup.sh
+cd ~/Desktop/Project/claude-skills && git pull && ./setup.sh
 ```
 
 ## Add a skill
