@@ -52,6 +52,15 @@ cd ~/repos/my-utils && git pull && ./setup.sh
 
 Rerunning `setup.sh` picks up newly added skills.
 
+## Migrate the existing quick-summary
+
+`quick-summary` currently lives as a real directory at
+`~/.claude/skills/quick-summary/` (its `name` already reads
+`my-utils:quick-summary`). Move that `SKILL.md` into
+`~/repos/my-utils/skills/quick-summary/SKILL.md`, remove the real directory, then
+symlink it back. Net effect is invisible to Claude Code; only the on-disk location
+changes.
+
 ## Add a skill
 
 1. Write `skills/<name>/SKILL.md` with `name: my-utils:<name>` in the frontmatter.
