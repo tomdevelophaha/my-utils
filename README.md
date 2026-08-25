@@ -25,4 +25,8 @@ cd ~/Desktop/Project/claude-skills && git pull && ./setup.sh
 ## Skills
 
 - `quick-summary` — one-paragraph recap of the current session.
+- `super-quick` — chores / tiny known-fix edits (≤20 lines, 2 files).
+- `bugfix` — bugs needing root-cause diagnosis, single-fix scope.
+- `new-feature` — feature work (brainstorm → spec → plan → TDD).
+- `long-running-job` — endurance tier, jobs too big for one context window.
 - `jot-down-task-github` — draft an item on the GitHub Projects V2 Kanban board.
