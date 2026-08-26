@@ -27,8 +27,10 @@ command auto-execute the plan.
 ## Flow
 
 1. **Kanban start** — find-or-create the card on Project #1 → In Progress.
-   Create (no card yet): `gh project item-create 1 --owner tomdevelophaha --title "<feature>" --body "<1-2 sentences>"`
-   Move: `gh project item-edit --id <item-id> --field-id <status-field-id> --value "In Progress"`
+   Create (no card yet): `gh project item-create 1 --owner "@me" --title "<feature>" --body "<1-2 sentences>"`
+   Move (Status is single-select — `--value` does NOT work):
+   `gh project item-edit --id <item-id> --project-id <project-id> --field-id <status-field-id> --single-select-option-id <option-id>`
+   (ids via `gh project field-list 1 --owner "@me" --format json`; project id via `gh project list --owner "@me"`)
 2. **Design** — superpowers:brainstorming. Spec lands in
    `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and is committed.
    Collaborative: user approves the spec.

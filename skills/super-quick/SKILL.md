@@ -20,9 +20,13 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 1. **Kanban start** — if a card on Project #1 clearly matches this task, move it
    to In Progress. No matching card → skip silently, create nothing.
    ```bash
-   gh project field-list 1 --owner tomdevelophaha          # find Status field id once
-   gh project item-list 1 --owner tomdevelophaha --format json | jq '.items[] | select(.title=="<task>") | .id'
-   gh project item-edit --id <item-id> --field-id <status-field-id> --value "In Progress"
+   # ids baked for speed (board #1). If a command 404s, re-resolve:
+   #   gh project list --owner "@me" --format json | jq -r '.projects[] | select(.number==1) | .id'
+   #   gh project field-list 1 --owner "@me" --format json    # Status field id + option ids
+   ITEM=$(gh project item-list 1 --owner "@me" --format json \
+     | jq -r '.items[] | select(.title | test("<task>")) | .id' | head -1)
+   gh project item-edit --id "$ITEM" --project-id PVT_xxxxxxxxxxxxxxxx \
+     --field-id PVTSSF_xxxxxxxxxxxxxxxxxxxxxxxxxxxx --single-select-option-id xxxxxxxx   # In Progress
    ```
 2. **Scope check** — if the change will exceed a few lines or touch logic beyond
    the trivial, STOP. Tell the user to run /my-utils:new-feature instead. Do not
@@ -35,8 +39,9 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 6. **/linus micro-review (always)** — invoke the linus skill on the diff of the
    new commit. Fix real findings, re-run tests, commit fixes. Dismiss style noise
    on a chore.
-7. **Kanban closeout** — card existed → move to Done (`gh project item-edit`
-   as above, `--value "Done"`). No card → nothing.
+7. **Kanban closeout** — card existed → move to Done (same `gh project
+   item-edit` shape as step 1, `--single-select-option-id zzzzzzzz` for Done).
+   No card → nothing.
 
 ## Hard rules
 
