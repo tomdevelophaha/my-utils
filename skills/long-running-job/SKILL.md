@@ -1,6 +1,6 @@
 ---
 name: my-utils:long-running-job
-description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus. Trigger via /my-utils:long-running-job."
+description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus fan-out (subagent per affected component). Trigger via /my-utils:long-running-job."
 allowed-tools:
   - Bash
   - Read
@@ -71,11 +71,25 @@ sessions are interchangeable. The job never depends on any session's memory.
    `status: paused-quota`, Log the reset time if the error states one, else
    Log `reset time unknown` (resume then re-attempts), end the turn with
    the quota stop message from step 4.
-6. **Closeout** — all units done → `/linus` on the full diff → fix real
-   findings, gates green → Kanban card Done → delete `.claude/jobs/<slug>*`
-   (file and launcher dir; git is the archive) → delete the executed plan
-   file per new-feature convention; the SPEC stays with its Outcome line →
-   STATE.md one Decisions line ONLY if architectural.
+6. **Closeout — /linus fan-out** — all units done, then never scan the whole
+   job's diff as one blob:
+   a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
+      the blast radius: importers/callers of every changed symbol, the routes or
+      UI that consume it, its tests. `graphify query` when the repo has a graph,
+      else grep the import path + symbol. Group into components (module/feature
+      units), not raw files. Cap ~8 — over that, merge the thinnest ones.
+   b. **Fan out** — ONE subagent per component, all dispatched in a single
+      message so they run concurrently. Each invokes the `linus` skill scoped to
+      its component — that component's diff hunks plus the code they touch — and
+      returns findings ONLY (severity, `file:line`, one-line fix direction). No
+      file dumps, no prose.
+   c. **Consolidate** — dedupe across agents, drop style noise, keep real
+      findings. One component in the scan set → skip the fan-out, run linus inline.
+   d. **Fix** — real findings fixed, gates green, committed.
+   Then: Kanban card Done → delete `.claude/jobs/<slug>*` (file and launcher
+   dir; git is the archive) → delete the executed plan file per new-feature
+   convention; the SPEC stays with its Outcome line → STATE.md one Decisions
+   line ONLY if architectural.
 
 ## Job file contract
 
@@ -124,3 +138,5 @@ Unit statuses (table column): `pending` → `next` → `done`. Frontmatter
 - Reconcile against git log on every resume; reality wins over the file.
 - Job files are never committed; launchers are deleted at closeout.
 - This skill never re-plans (GSD/superpowers own that) and never skips /linus.
+- Closeout review is never one whole-diff scan — every affected component gets
+  its own subagent.

@@ -28,14 +28,18 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
    gh project item-edit --id "$ITEM" --project-id PVT_xxxxxxxxxxxxxxxx \
      --field-id PVTSSF_xxxxxxxxxxxxxxxxxxxxxxxxxxxx --single-select-option-id xxxxxxxx   # In Progress
    ```
-2. **Scope check** — if the change will exceed a few lines or touch logic beyond
-   the trivial, STOP. Tell the user to run /my-utils:new-feature instead. Do not
-   half-do it.
+2. **Scope check (hard cap)** — more than 20 changed lines (diff stat) or more
+   than 2 files, or logic beyond the trivial → STOP. Tell the user to run
+   /my-utils:new-feature instead. Do not half-do it. Behavior trigger: the
+   change alters runtime behavior (not copy, titles, config) and no test covers
+   it → promote, regardless of size.
 3. **Edit** — make the change directly.
 4. **Verify** — run the project's test command (discover from `package.json`
    scripts, e.g. `npm test`); everything must pass. No test script → run
    typecheck (`npx tsc --noEmit`) or build.
-5. **Commit** — one atomic conventional commit (`fix:` / `chore:` / `feat:`).
+5. **Commit** — one atomic conventional commit (`fix:` / `chore:` / `feat:`)
+   whose body carries one plain-language sentence on WHY. A prefix alone is
+   not enough.
 6. **/linus micro-review (always)** — invoke the linus skill on the diff of the
    new commit. Fix real findings, re-run tests, commit fixes. Dismiss style noise
    on a chore.
@@ -47,3 +51,4 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 
 - Never write to .planning/STATE.md for super-quick work.
 - Never expand scope mid-task — promote to /my-utils:new-feature instead.
+- A behavior change with no test to run is a promotion trigger, regardless of size.
