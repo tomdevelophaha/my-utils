@@ -1,6 +1,6 @@
 ---
 name: my-utils:long-running-job
-description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus fan-out (subagent per affected component). Trigger via /my-utils:long-running-job."
+description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Entered directly, or handed off from /my-utils:new-feature when a plan outgrows one context window. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus fan-out (subagent per affected component). Trigger via /my-utils:long-running-job."
 allowed-tools:
   - Bash
   - Read
@@ -32,6 +32,9 @@ sessions are interchangeable. The job never depends on any session's memory.
    - an approved test list inside that plan
    Missing either → route the user to superpowers:brainstorming +
    superpowers:writing-plans, then STOP. Do not "just start".
+   Usual entry is /my-utils:new-feature's scale check handing the plan over
+   once it will not execute inside one context window; its approved plan +
+   test list satisfy this gate as-is — never re-approve or re-plan them.
 2. **Init** —
    - ensure `.claude/jobs/` is gitignored in the target repo (append to
      .gitignore if absent; job files are runtime state, never committed)

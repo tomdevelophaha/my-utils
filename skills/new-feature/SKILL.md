@@ -1,6 +1,6 @@
 ---
 name: my-utils:new-feature
-description: "Use for feature work — new capabilities like Apple login, library integrations, UI subsystems. Pipeline: superpowers brainstorming → GSD plan-only breakdown (plan carries test list; double gate: plan + test list approved) → superpowers executing-plans with TDD (user reads core diff at checkpoint) → /linus fan-out review (subagent per affected component) → state closeout (spec Outcome line). Modes: collaborative (default), --offload (autonomous, worktree), optional --hand-first modifier. Trigger via /my-utils:new-feature."
+description: "Use for feature work — new capabilities like Apple login, library integrations, UI subsystems. Pipeline: superpowers brainstorming → GSD plan-only breakdown (plan carries test list; double gate: plan + test list approved) → superpowers executing-plans with TDD (user reads core diff at checkpoint) → /linus fan-out review (subagent per affected component) → state closeout (spec Outcome line). Plan too big for one context window → /my-utils:long-running-job. Modes: collaborative (default), --offload (autonomous, worktree), optional --hand-first modifier. Trigger via /my-utils:new-feature."
 allowed-tools:
   - Bash
   - Read
@@ -49,9 +49,16 @@ command auto-execute the plan.
    Plan approval is a hard double gate: plan approved AND test list approved —
    execution may not start until both. Offload: the user approves plan + test
    list BEFORE the worktree starts; no further approval mid-run.
-4. **Scale check** — plan exceeds plan-file scale (multi-week, cross-cutting) →
-   wrap as a GSD phase instead: `/gsd-plan-phase` (ROADMAP line + phases/NN-*),
-   then execution continues through gsd-execute-phase + superpowers TDD.
+4. **Scale check** — two escalations on different axes; both can fire:
+   - **Plan shape** — exceeds plan-file scale (multi-week, cross-cutting) → wrap
+     as a GSD phase instead: `/gsd-plan-phase` (ROADMAP line + phases/NN-*),
+     then execution continues through gsd-execute-phase + superpowers TDD.
+   - **Endurance** — the approved plan will not execute inside one context
+     window (bulk mechanical edits across many files, an overnight run) → STOP
+     at the plan gate and hand the plan to /my-utils:long-running-job. Do not
+     start executing and hope to finish. The approved plan + test list transfer
+     as-is; that tier requires exactly this artifact and never re-plans.
+   Both firing → wrap as a GSD phase first, then run that phase's plan as a job.
 5. **Execute** — superpowers:executing-plans, superpowers TDD inside each task,
    commit per task. Offload: `superpowers:using-git-worktrees` first.
    Collaborative hard gate: the agent lists the core diff files; the user
