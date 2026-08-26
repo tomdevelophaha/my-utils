@@ -31,10 +31,23 @@ command auto-execute the plan.
 ## Flow
 
 1. **Kanban start** — find-or-create the card on Project #1 → In Progress.
-   Create (no card yet): `gh project item-create 1 --owner "@me" --title "<feature>" --body "<1-2 sentences>"`
-   Move (Status is single-select — `--value` does NOT work):
-   `gh project item-edit --id <item-id> --project-id <project-id> --field-id <status-field-id> --single-select-option-id <option-id>`
-   (ids via `gh project field-list 1 --owner "@me" --format json`; project id via `gh project list --owner "@me"`)
+   ```bash
+   # ids baked for speed (board #1). If a command 404s, re-resolve:
+   #   gh project list --owner "@me" --format json | jq -r '.projects[] | select(.number==1) | .id'
+   #   gh project field-list 1 --owner "@me" --format json    # Status field id + option ids
+   PROJ=PVT_xxxxxxxxxxxxxxxx
+   STATUS=PVTSSF_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+   ITEM=$(gh project item-list 1 --owner "@me" --format json \
+     | jq -r '.items[] | select(.title | test("<feature>")) | .id' | head -1)
+   [ -z "$ITEM" ] && ITEM=$(gh project item-create 1 --owner "@me" \
+     --title "<feature>" --body "<1-2 sentences>" --format json --jq .id)
+   # empty id back → re-run the item-list above rather than guessing
+
+   # Status is single-select — --value does NOT work
+   gh project item-edit --id "$ITEM" --project-id "$PROJ" \
+     --field-id "$STATUS" --single-select-option-id xxxxxxxx   # In Progress
+   ```
 2. **Design** — superpowers:brainstorming. Spec lands in
    `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and is committed.
    Collaborative: user approves the spec. `--hand-first`: the spec's design
