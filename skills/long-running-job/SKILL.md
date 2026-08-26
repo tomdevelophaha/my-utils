@@ -74,8 +74,9 @@ sessions are interchangeable. The job never depends on any session's memory.
    `status: paused-quota`, Log the reset time if the error states one, else
    Log `reset time unknown` (resume then re-attempts), end the turn with
    the quota stop message from step 4.
-6. **Closeout — /linus fan-out** — all units done, then never scan the whole
-   job's diff as one blob:
+6. **Closeout — /linus fan-out** — all units done → card to Ready For Review
+   (`--single-select-option-id yyyyyyyy`), then never scan the whole job's
+   diff as one blob:
    a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
       the blast radius: importers/callers of every changed symbol, the routes or
       UI that consume it, its tests. `graphify query` when the repo has a graph,

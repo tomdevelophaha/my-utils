@@ -42,8 +42,9 @@ up through the symlink with no re-run.
 | `new-feature` | New capability — integrations, UI subsystems, login flows. | Too big for one context window → `long-running-job` |
 | `long-running-job` | Overnight refactors, migrations, bulk changes across sessions. | Never re-plans; requires an approved plan + test list up front |
 
-The tiers share a spine: a GitHub Projects card at both ends, a real
-verification step before the commit, and a `/linus` review before closeout.
+The tiers share a spine: a GitHub Projects card moved through In Progress →
+Ready For Review → Done, a real verification step before the commit, and a
+`/linus` review before closeout.
 `super-quick` runs the micro version — it only moves a card that already
 matches, and reviews inline. The three heavier tiers find-or-create the card,
 fan the review out across one subagent per affected component, and delegate

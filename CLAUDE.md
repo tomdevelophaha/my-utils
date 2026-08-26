@@ -46,9 +46,12 @@ new-feature --(exceeds one context window)----------------------> long-running-j
 
 - Change one tier's boundary → update the tiers on both sides of it, their
   frontmatter descriptions, and the README table in the same commit.
-- Every tier keeps the same spine: Kanban card → real verification before the
-  commit → `/linus` review → card Done. `super-quick` only moves a card that
-  already matches and never creates one; the heavier tiers find-or-create.
+- Every tier keeps the same spine: Kanban card In Progress → real verification
+  before the commit → card Ready For Review → `/linus` review → card Done. The
+  board has four columns and the card visits three of them; a card that jumps
+  In Progress straight to Done means the review stage was skipped.
+  `super-quick` only moves a card that already matches and never creates one;
+  the heavier tiers find-or-create.
 - Review is never a whole-diff blob scan above the chore tier: `bugfix`,
   `new-feature`, and `long-running-job` fan out one subagent per affected
   component.

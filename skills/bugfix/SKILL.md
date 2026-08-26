@@ -39,7 +39,9 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
    CLAUDE.md / package.json).
 7. **Commit** — one atomic conventional commit (`fix:`); body carries the root cause
    in one plain-language sentence + the proof (test name, or repro steps).
-8. **/linus fan-out review (always)** — never scan the diff as one blob.
+8. **/linus fan-out review (always)** — card → Ready For Review
+   (`--single-select-option-id yyyyyyyy`) first, then never scan the diff as
+   one blob.
    a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
       the blast radius: importers/callers of every changed symbol, the routes or
       UI that consume it, its tests. `graphify query` when the repo has a graph,

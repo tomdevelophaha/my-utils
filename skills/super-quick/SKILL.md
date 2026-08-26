@@ -40,9 +40,10 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 5. **Commit** — one atomic conventional commit (`fix:` / `chore:` / `feat:`)
    whose body carries one plain-language sentence on WHY. A prefix alone is
    not enough.
-6. **/linus micro-review (always)** — invoke the linus skill on the diff of the
-   new commit. Fix real findings, re-run tests, commit fixes. Dismiss style noise
-   on a chore.
+6. **/linus micro-review (always)** — card existed → Ready For Review
+   (`--single-select-option-id yyyyyyyy`, same shape as step 1) before
+   reviewing. Invoke the linus skill on the diff of the new commit. Fix real
+   findings, re-run tests, commit fixes. Dismiss style noise on a chore.
 7. **Kanban closeout** — card existed → move to Done (same `gh project
    item-edit` shape as step 1, `--single-select-option-id zzzzzzzz` for Done).
    No card → nothing.

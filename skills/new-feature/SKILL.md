@@ -77,7 +77,9 @@ command auto-execute the plan.
    Collaborative hard gate: the agent lists the core diff files; the user
    reads them and confirms read (not the summary). `/linus` review may not
    start until confirmed.
-6. **Review — /linus fan-out** — never scan the diff as one blob.
+6. **Review — /linus fan-out** — card → Ready For Review
+   (`--single-select-option-id yyyyyyyy`, ids from step 1) first, then never
+   scan the diff as one blob.
    a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
       the blast radius: importers/callers of every changed symbol, the routes or
       UI that consume it, its tests. `graphify query` when the repo has a graph,
