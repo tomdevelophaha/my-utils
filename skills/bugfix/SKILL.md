@@ -53,7 +53,7 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
    c. **Consolidate** — dedupe across agents, drop style noise, keep real
       findings. One component in the scan set → skip the fan-out, run linus inline.
    d. **Fix** — real findings fixed, full suite re-run green, committed.
-9. **Kanban closeout** — card → Done.
+9. **Kanban closeout** — card → Done (same `gh project` command shape as step 2).
 
 ## Hard rules
 
