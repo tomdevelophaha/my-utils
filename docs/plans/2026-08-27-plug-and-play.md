@@ -3,21 +3,13 @@
 Spec: `docs/portability-design.md` (approved 2026-08-26)
 Convention: one atomic commit per task. Tests are bash assertions under `tests/`.
 
-## Open decision — blocks task 3
+## Decision — task 3 (settled 2026-08-27)
 
-The spec removes hardcoded board ids from four SKILL.md files. Two ways to land it:
-
-- **A. `bin/kanban.sh` helper** — one shell code path (`find-or-create`, `move`),
-  called by all four tiers. The optionality lives in one testable place.
-  **Conflicts with CLAUDE.md's "Markdown skill definitions only. No runtime code."**
-  Taking it means amending that constraint in task 10.
-- **B. Inline snippet per SKILL.md** — each tier sources `~/.claude/my-utils.config`
-  and guards on it. Honors the constraint; keeps four copies of the logic, which
-  is what made the ids brittle in the first place.
-
-Recommend **A**. `setup.sh` and `tests/` are already shell; the constraint's intent
-is "no build step, no app code", and a 40-line helper that four skills share is
-strictly less fragile than four copies. Task 10 amends CLAUDE.md to say so.
+**A. `bin/kanban.sh` helper.** One shell code path (`find-or-create`, `move`)
+called by all four tiers; the "skip silently when absent" rule lives in one
+place the test suite can prove. Task 10 amends CLAUDE.md's "no runtime code"
+constraint to permit small shared shell helpers — its intent is "no build step,
+no app code", and `setup.sh` plus `tests/` already sit on that side of the line.
 
 ## Tasks
 

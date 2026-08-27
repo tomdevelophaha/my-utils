@@ -1,19 +1,27 @@
 # CLAUDE.md — my-utils (private skill library · brownfield / per-visit finite)
 
-Markdown skill definitions only. No runtime code, no build. A change here
-alters Claude's behavior on every machine that has run `setup.sh` — treat every
-edit as a behavior change, not a docs edit.
+Markdown skill definitions, plus small shared shell helpers under `bin/` when
+several skills would otherwise carry copies of the same commands. No build step,
+no application code. A change here alters Claude's behavior on every machine
+that has run `setup.sh` — treat every edit as a behavior change, not a docs
+edit.
 
 ## Commands
 
 ```bash
-./setup.sh              # symlink skills/* into ~/.claude/skills/ (idempotent)
-./tests/test-setup.sh   # must print PASS — run after ANY setup.sh change
+./setup.sh                 # link skills/* and vendor/skills/* (idempotent, offline)
+./setup.sh --with-deps     # also install superpowers + gsd-core (opt-in, network)
+./setup.sh --configure     # resolve this machine's Kanban board into ~/.claude/my-utils.config
+./doctor.sh                # report what is present, missing, or disabled
+./tests/test-setup.sh      # must print PASS — run after ANY setup.sh change
+./tests/test-kanban.sh     # must print PASS — run after ANY bin/kanban.sh change
+./tests/test-doctor.sh     # must print PASS — run after ANY doctor.sh change
+./tests/test-fallbacks.sh  # must print PASS — run after ANY change to a skill's dependencies
 ```
 
-There is no test suite for skill content. Verification for a `SKILL.md` change
-is: re-read the flow end to end and confirm every referenced skill, command,
-and path exists.
+There is no test suite for skill *content*. Verification for a `SKILL.md` change
+is: re-read the flow end to end, confirm every referenced skill, command, and
+path exists, and run `./tests/test-fallbacks.sh`.
 
 ## Hard constraints
 
@@ -32,6 +40,26 @@ and path exists.
 - Never invent a skill, command, or board id in a flow. Every `/gsd-*`,
   `superpowers:*`, `/linus`, and `gh project` reference must be one that
   actually exists.
+
+## Portability
+
+Every machine is assumed to be missing something. See `docs/portability-design.md`.
+
+- **No skill may hardcode a board id, project number, or machine path.** The
+  Kanban board lives in `~/.claude/my-utils.config`; skills call
+  `~/.claude/my-utils/kanban.sh`. Skills run from the *user's project*
+  directory, so any helper they invoke needs an absolute path — a relative one
+  will not resolve.
+- **Every external dependency a skill names needs a row in that skill's
+  `## Fallbacks` table.** `tests/test-fallbacks.sh` enforces this and will fail
+  the moment a new dependency arrives without one.
+- **A missing dependency degrades the step; it never silently skips it.** Keep
+  the invariant, drop the mechanism — without the TDD skill you still write the
+  failing test first. Two exceptions: escalation exits (`/gsd-*`) **STOP**
+  rather than improvise, because improvising past a handoff gate defeats it;
+  and Kanban is explicitly optional.
+- **Vendor only what has no upstream.** `superpowers` and `gsd-core` both have
+  installers and belong in `--with-deps`, never in `vendor/`.
 
 ## Tier invariants
 
