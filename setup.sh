@@ -43,6 +43,33 @@ CFG
   echo "configured: $CONFIG (project #$number)"
 }
 
+# Install the dependencies that HAVE an upstream. Opt-in only: a plain
+# ./setup.sh must never touch the network. Anything already present is left
+# alone. A failed install is reported, not fatal — the skills degrade.
+with_deps() {
+  if [[ -d "$TARGET_DIR/superpowers" ]] || claude plugin list 2>/dev/null | grep -q superpowers; then
+    echo "present: superpowers"
+  elif command -v claude >/dev/null 2>&1; then
+    echo "installing: superpowers"
+    claude plugin install superpowers@claude-plugins-official --yes 2>/dev/null \
+      || { claude plugin marketplace add obra/superpowers-marketplace 2>/dev/null \
+           && claude plugin install superpowers@superpowers-marketplace --yes 2>/dev/null; } \
+      || echo "  failed — install by hand: claude plugin install superpowers@claude-plugins-official" >&2
+  else
+    echo "skipped: superpowers (no claude CLI on PATH)" >&2
+  fi
+
+  if compgen -G "$TARGET_DIR/gsd-*" >/dev/null; then
+    echo "present: gsd-core"
+  elif command -v npx >/dev/null 2>&1; then
+    echo "installing: gsd-core"
+    npx @opengsd/gsd-core@latest --claude --global \
+      || echo "  failed — install by hand: npx @opengsd/gsd-core@latest --claude --global" >&2
+  else
+    echo "skipped: gsd-core (no npx on PATH)" >&2
+  fi
+}
+
 case "${1:-}" in
   --configure) configure "${2:-1}"; exit $? ;;
 esac
@@ -67,3 +94,7 @@ for skill in "$SOURCE_DIR"/*/ "$VENDOR_DIR"/*/; do
   ln -s "$skill" "$link"
   echo "linked: $name"
 done
+
+case "${1:-}" in
+  --with-deps) with_deps ;;
+esac

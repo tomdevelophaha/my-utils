@@ -35,4 +35,32 @@ out="$(env PATH=/usr/bin:/bin MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$v
   || fail "T3: default run failed without npx/claude on PATH"
 grep -qiE 'install|fetch|clon' <<<"$out" && fail "T3: default run attempted an install"
 
+# --- bootstrap stubs -------------------------------------------------------
+bin="$tmp/bin"; mkdir -p "$bin"; log="$tmp/argv.log"
+cat > "$bin/claude" <<STUB
+#!/usr/bin/env bash
+echo "claude \$*" >> "$log"
+STUB
+cat > "$bin/npx" <<STUB
+#!/usr/bin/env bash
+echo "npx \$*" >> "$log"
+STUB
+chmod +x "$bin/claude" "$bin/npx"
+
+# T5 — --with-deps issues the verified non-interactive commands
+: > "$log"
+env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
+grep -q -- 'plugin install superpowers@claude-plugins-official --yes' "$log" \
+  || fail "T5: superpowers install command wrong or missing"
+grep -q -- '@opengsd/gsd-core@latest --claude --global' "$log" \
+  || fail "T5: gsd install command wrong or missing"
+
+# T4 — deps already present → --with-deps installs nothing
+mkdir -p "$tgt/gsd-quick" "$tgt/superpowers"
+: > "$log"
+env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
+[[ ! -s "$log" ]] || fail "T4: reinstalled deps that were already present: $(cat "$log")"
+
 echo "PASS"
