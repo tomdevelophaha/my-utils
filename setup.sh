@@ -91,6 +91,17 @@ esac
 
 mkdir -p "$TARGET_DIR"
 
+# Skills execute from the user's project directory, never from this repo, so
+# they cannot reach the helper by a relative path. Install it at a stable
+# absolute one every SKILL.md can name.
+HELPER_DIR="${MY_UTILS_HELPER_DIR:-$HOME/.claude/my-utils}"
+if [[ -f "$ROOT/bin/kanban.sh" ]]; then
+  mkdir -p "$HELPER_DIR"
+  if [[ -L "$HELPER_DIR/kanban.sh" || ! -e "$HELPER_DIR/kanban.sh" ]]; then
+    ln -sfn "$ROOT/bin/kanban.sh" "$HELPER_DIR/kanban.sh"
+  fi
+fi
+
 # Link both the skills authored here and the vendored third-party skills they
 # depend on. Same rule for both: never clobber a real directory already sitting
 # at the target name.

@@ -35,6 +35,15 @@ out="$(env PATH=/usr/bin:/bin MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$v
   || fail "T3: default run failed without npx/claude on PATH"
 grep -qiE 'install|fetch|clon' <<<"$out" && fail "T3: default run attempted an install"
 
+# T12 — the kanban helper is installed at a stable absolute path, because
+# skills execute from the user's project directory, not from this repo.
+helper="$tmp/home/.claude/my-utils/kanban.sh"
+env HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh >/dev/null
+[[ -e "$helper" ]] || fail "T12: helper not installed at ~/.claude/my-utils/kanban.sh"
+[[ -x "$helper" ]] || fail "T12: installed helper is not executable"
+( cd "$tmp" && "$helper" move "x" done ) || fail "T12: helper not runnable from another cwd"
+
 # --- bootstrap stubs -------------------------------------------------------
 bin="$tmp/bin"; mkdir -p "$bin"; log="$tmp/argv.log"
 cat > "$bin/claude" <<STUB

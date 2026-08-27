@@ -24,8 +24,12 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
 1. **Scope gate (hard)** — this skill owns bugs that need diagnosis. Already know
    the one-line fix (no investigation) → /my-utils:super-quick. New capability →
    /my-utils:new-feature.
-2. **Kanban start** — find-or-create the card on Project #1 → In Progress
-   (same `gh project` commands as super-quick/new-feature).
+2. **Kanban start** — find-or-create the card, then move it to In Progress.
+   ```bash
+   ~/.claude/my-utils/kanban.sh find-or-create "<bug>" "<1-2 sentences>"
+   ~/.claude/my-utils/kanban.sh move "<bug>" in-progress
+   ```
+   Optional: no config or no `gh` exits 0 silently and the fix proceeds.
 3. **Reproduce + root cause** — invoke superpowers:systematic-debugging, Phases 1–3:
    read the error, reproduce consistently, check recent changes, trace data flow.
    NO fix before root cause. Can't reproduce → gather data, don't guess.
@@ -39,9 +43,8 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
    CLAUDE.md / package.json).
 7. **Commit** — one atomic conventional commit (`fix:`); body carries the root cause
    in one plain-language sentence + the proof (test name, or repro steps).
-8. **/linus fan-out review (always)** — card → Ready For Review
-   (`--single-select-option-id yyyyyyyy`) first, then never scan the diff as
-   one blob.
+8. **/linus fan-out review (always)** — `~/.claude/my-utils/kanban.sh move "<bug>" review`
+   first, then never scan the diff as one blob.
    a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
       the blast radius: importers/callers of every changed symbol, the routes or
       UI that consume it, its tests. `graphify query` when the repo has a graph,
@@ -55,7 +58,22 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
    c. **Consolidate** — dedupe across agents, drop style noise, keep real
       findings. One component in the scan set → skip the fan-out, run linus inline.
    d. **Fix** — real findings fixed, full suite re-run green, committed.
-9. **Kanban closeout** — card → Done (same `gh project` command shape as step 2).
+9. **Kanban closeout** — `~/.claude/my-utils/kanban.sh move "<bug>" done`.
+
+## Fallbacks
+
+A missing dependency degrades the step; it never silently skips it. Escalation
+exits are the one exception — they STOP, because improvising past a handoff
+gate defeats the gate. `./doctor.sh` reports what this machine has.
+
+| Dependency | Absent → |
+|---|---|
+| `superpowers:systematic-debugging` | Run the phases inline: read the error, reproduce it consistently, check recent changes, trace the data flow. The invariant holds — no fix before root cause. |
+| `superpowers:test-driven-development` | Write the failing test yourself, watch it fail, then fix until it passes. The invariant holds — no proof, no commit. |
+| `/gsd-debug` | **STOP.** Report the root cause found so far and why it outgrew a single fix, then hand back to the user. Do not improvise past the escalation gate. Offer `./setup.sh --with-deps` to install GSD. |
+| `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
+| `graphify` | Build the scan set with grep over the import path + symbol. Already the documented path when the repo has no graph. |
+| Kanban (`gh` / config) | Skip every card step silently. |
 
 ## Hard rules
 

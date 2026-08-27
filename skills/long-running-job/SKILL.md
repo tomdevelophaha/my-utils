@@ -41,10 +41,9 @@ sessions are interchangeable. The job never depends on any session's memory.
    - create `.claude/jobs/<YYYY-MM-DD>-<slug>.md` from the contract below;
      record the plan file's sha256 (`shasum -a 256`)
    - find-or-create the Kanban card → In Progress:
-     create: gh project item-create 1 --owner "@me" --title "<slug>" --body "<1 line>"
-     move: gh project item-edit --id <item-id> --project-id <pid> --field-id <fid> --single-select-option-id <oid>
-     (ids via: gh project field-list 1 --owner "@me" --format json)
-     skip silently if gh unavailable
+     `~/.claude/my-utils/kanban.sh find-or-create "<slug>" "<1 line>"`
+     `~/.claude/my-utils/kanban.sh move "<slug>" in-progress`
+     (optional — exits 0 silently when no board is configured)
 3. **Unit loop** — for the unit whose status is `next`:
    a. Execute via superpowers:executing-plans + TDD. ONE atomic commit per unit.
    b. **Gates**: typecheck + lint + the unit's tests. Commands come from the
@@ -74,8 +73,8 @@ sessions are interchangeable. The job never depends on any session's memory.
    `status: paused-quota`, Log the reset time if the error states one, else
    Log `reset time unknown` (resume then re-attempts), end the turn with
    the quota stop message from step 4.
-6. **Closeout — /linus fan-out** — all units done → card to Ready For Review
-   (`--single-select-option-id yyyyyyyy`), then never scan the whole job's
+6. **Closeout — /linus fan-out** — all units done →
+   `~/.claude/my-utils/kanban.sh move "<slug>" review`, then never scan the whole job's
    diff as one blob:
    a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
       the blast radius: importers/callers of every changed symbol, the routes or
@@ -90,10 +89,25 @@ sessions are interchangeable. The job never depends on any session's memory.
    c. **Consolidate** — dedupe across agents, drop style noise, keep real
       findings. One component in the scan set → skip the fan-out, run linus inline.
    d. **Fix** — real findings fixed, gates green, committed.
-   Then: Kanban card Done → delete `.claude/jobs/<slug>*` (file and launcher
+   Then: `~/.claude/my-utils/kanban.sh move "<slug>" done` → delete `.claude/jobs/<slug>*` (file and launcher
    dir; git is the archive) → delete the executed plan file per new-feature
    convention; the SPEC stays with its Outcome line → STATE.md one Decisions
    line ONLY if architectural.
+
+## Fallbacks
+
+A missing dependency degrades the step; it never silently skips it. The plan
+gate is the one thing that never degrades — a job without an approved plan and
+test list is refused regardless of what is installed. `./doctor.sh` reports
+what this machine has.
+
+| Dependency | Absent → |
+|---|---|
+| `superpowers:executing-plans` | Execute the unit's plan tasks in order, one atomic commit per unit, exactly as the plan states. |
+| `superpowers:brainstorming`, `superpowers:writing-plans` | Named only in the step 1 refusal message. With them absent, still refuse, and point the user at `/my-utils:new-feature`, which carries its own inline fallbacks for both. |
+| `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
+| `graphify` | Build the scan set with grep over the import path + symbol. |
+| Kanban (`gh` / config) | Skip every card step silently. |
 
 ## Job file contract
 

@@ -30,24 +30,13 @@ command auto-execute the plan.
 
 ## Flow
 
-1. **Kanban start** — find-or-create the card on Project #1 → In Progress.
+1. **Kanban start** — find-or-create the card, then move it to In Progress.
    ```bash
-   # ids baked for speed (board #1). If a command 404s, re-resolve:
-   #   gh project list --owner "@me" --format json | jq -r '.projects[] | select(.number==1) | .id'
-   #   gh project field-list 1 --owner "@me" --format json    # Status field id + option ids
-   PROJ=PVT_xxxxxxxxxxxxxxxx
-   STATUS=PVTSSF_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-   ITEM=$(gh project item-list 1 --owner "@me" --format json \
-     | jq -r '.items[] | select(.title | test("<feature>")) | .id' | head -1)
-   [ -z "$ITEM" ] && ITEM=$(gh project item-create 1 --owner "@me" \
-     --title "<feature>" --body "<1-2 sentences>" --format json --jq .id)
-   # empty id back → re-run the item-list above rather than guessing
-
-   # Status is single-select — --value does NOT work
-   gh project item-edit --id "$ITEM" --project-id "$PROJ" \
-     --field-id "$STATUS" --single-select-option-id xxxxxxxx   # In Progress
+   ~/.claude/my-utils/kanban.sh find-or-create "<feature>" "<1-2 sentences>"
+   ~/.claude/my-utils/kanban.sh move "<feature>" in-progress
    ```
+   The board is optional: no config, no `gh`, or no auth exits 0 silently and
+   the feature proceeds. Enable it once per machine with `./setup.sh --configure`.
 2. **Design** — superpowers:brainstorming. Spec lands in
    `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and is committed.
    Collaborative: user approves the spec. `--hand-first`: the spec's design
@@ -77,9 +66,8 @@ command auto-execute the plan.
    Collaborative hard gate: the agent lists the core diff files; the user
    reads them and confirms read (not the summary). `/linus` review may not
    start until confirmed.
-6. **Review — /linus fan-out** — card → Ready For Review
-   (`--single-select-option-id yyyyyyyy`, ids from step 1) first, then never
-   scan the diff as one blob.
+6. **Review — /linus fan-out** — `~/.claude/my-utils/kanban.sh move "<feature>" review`
+   first, then never scan the diff as one blob.
    a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
       the blast radius: importers/callers of every changed symbol, the routes or
       UI that consume it, its tests. `graphify query` when the repo has a graph,
@@ -97,7 +85,7 @@ command auto-execute the plan.
       summary. The offload report MUST include a read-first section: 3-5
       `file:line` pointers into the diff, one line each on what changed and why.
 7. **Closeout** —
-   - Kanban card → Done.
+   - `~/.claude/my-utils/kanban.sh move "<feature>" done`.
    - Delete the executed plan file (`git rm docs/superpowers/plans/<file>.md`) —
      git is the archive. The SPEC stays.
    - STATE.md: ONE Decisions line ONLY if an architectural choice changed
@@ -105,6 +93,24 @@ command auto-execute the plan.
    - Spec Outcome line: append `Outcome: shipped as planned` or
      `Outcome: diverged — <what> (commit <short-hash>)` to the spec. Spec-side
      only; STATE.md stays index-only.
+
+## Fallbacks
+
+A missing dependency degrades the step; it never silently skips it. Escalation
+exits are the one exception — they STOP, because improvising past a handoff
+gate defeats the gate. `./doctor.sh` reports what this machine has.
+
+| Dependency | Absent → |
+|---|---|
+| `superpowers:brainstorming` | Ask the unanswered questions inline, one decision at a time, then write the same spec to the same path. The gate holds — no breakdown until the user approves it. |
+| `superpowers:writing-plans` | Write the plan by hand in GSD form: task table, atomic commit per task, and a test list naming each test and the behavior it asserts. |
+| `superpowers:executing-plans` | Execute the plan task by task, one atomic commit each, in the planned order. |
+| `superpowers:test-driven-development` | Write each task's failing test first, watch it fail, then implement. The invariant holds — execution never starts without an approved test list. |
+| `superpowers:using-git-worktrees` | `git worktree add ../<slug> -b <branch>` directly (`--offload` only). |
+| `/gsd-quick`, `/gsd-plan-phase` | Breakdown falls back to writing the plan by hand as above. For a phase-scale wrap with no GSD installed, **STOP** and tell the user, rather than inventing a phase structure. |
+| `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
+| `graphify` | Build the scan set with grep over the import path + symbol. |
+| Kanban (`gh` / config) | Skip every card step silently. |
 
 ## Hard rules
 

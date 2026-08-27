@@ -17,17 +17,13 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 
 ## Flow
 
-1. **Kanban start** — if a card on Project #1 clearly matches this task, move it
-   to In Progress. No matching card → skip silently, create nothing.
+1. **Kanban start** — if a card matches this task, move it to In Progress.
+   Never create one at this tier.
    ```bash
-   # ids baked for speed (board #1). If a command 404s, re-resolve:
-   #   gh project list --owner "@me" --format json | jq -r '.projects[] | select(.number==1) | .id'
-   #   gh project field-list 1 --owner "@me" --format json    # Status field id + option ids
-   ITEM=$(gh project item-list 1 --owner "@me" --format json \
-     | jq -r '.items[] | select(.title | test("<task>")) | .id' | head -1)
-   gh project item-edit --id "$ITEM" --project-id PVT_xxxxxxxxxxxxxxxx \
-     --field-id PVTSSF_xxxxxxxxxxxxxxxxxxxxxxxxxxxx --single-select-option-id xxxxxxxx   # In Progress
+   ~/.claude/my-utils/kanban.sh move "<task>" in-progress
    ```
+   The board is optional: no config, no `gh`, or no matching card exits 0
+   silently. Never let a card step block the work.
 2. **Scope check (hard cap)** — more than 20 changed lines (diff stat) or more
    than 2 files, or logic beyond the trivial → STOP. Tell the user to run
    /my-utils:new-feature instead. Do not half-do it. Behavior trigger: the
@@ -40,13 +36,20 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 5. **Commit** — one atomic conventional commit (`fix:` / `chore:` / `feat:`)
    whose body carries one plain-language sentence on WHY. A prefix alone is
    not enough.
-6. **/linus micro-review (always)** — card existed → Ready For Review
-   (`--single-select-option-id yyyyyyyy`, same shape as step 1) before
-   reviewing. Invoke the linus skill on the diff of the new commit. Fix real
+6. **/linus micro-review (always)** — `~/.claude/my-utils/kanban.sh move "<task>" review`
+   first, then invoke the linus skill on the diff of the new commit. Fix real
    findings, re-run tests, commit fixes. Dismiss style noise on a chore.
-7. **Kanban closeout** — card existed → move to Done (same `gh project
-   item-edit` shape as step 1, `--single-select-option-id zzzzzzzz` for Done).
-   No card → nothing.
+7. **Kanban closeout** — `~/.claude/my-utils/kanban.sh move "<task>" done`.
+
+## Fallbacks
+
+A missing dependency degrades the step; it never silently skips it.
+Run `./doctor.sh` to see what this machine actually has.
+
+| Dependency | Absent → |
+|---|---|
+| `linus` | It is vendored here, so `./setup.sh` is the whole fix. If it is still missing, review the diff yourself against: does this belong in the data structure, is it a special case that should not exist, is anything gratuitously complex, does it break an existing caller. |
+| Kanban (`gh` / config) | Skip every card step silently. |
 
 ## Hard rules
 
