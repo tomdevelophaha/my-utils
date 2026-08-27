@@ -63,4 +63,19 @@ env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$v
     MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
 [[ ! -s "$log" ]] || fail "T4: reinstalled deps that were already present: $(cat "$log")"
 
+# T5b — a disabled plugin is enabled, never reinstalled
+cat > "$bin/claude" <<STUB
+#!/usr/bin/env bash
+echo "claude \$*" >> "$log"
+[[ "\$*" == *"plugin list"* ]] && printf '  superpowers@claude-plugins-official\\n    Status: disabled\\n'
+exit 0
+STUB
+chmod +x "$bin/claude"
+rm -rf "$tgt/superpowers"
+: > "$log"
+env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
+grep -q 'plugin enable' "$log" || fail "T5b: did not enable the disabled plugin"
+grep -q 'plugin install' "$log" && fail "T5b: reinstalled a plugin that was merely disabled"
+
 echo "PASS"

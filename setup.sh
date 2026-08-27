@@ -47,8 +47,23 @@ CFG
 # ./setup.sh must never touch the network. Anything already present is left
 # alone. A failed install is reported, not fatal — the skills degrade.
 with_deps() {
-  if [[ -d "$TARGET_DIR/superpowers" ]] || claude plugin list 2>/dev/null | grep -q superpowers; then
+  local sp_state=absent
+  if [[ -d "$TARGET_DIR/superpowers" ]]; then
+    sp_state=enabled
+  elif command -v claude >/dev/null 2>&1; then
+    sp_state="$(claude plugin list 2>/dev/null | grep -A3 -i superpowers || true)"
+    if [[ -z "$sp_state" ]]; then sp_state=absent
+    elif grep -qi disabled <<<"$sp_state"; then sp_state=disabled
+    else sp_state=enabled; fi
+  fi
+
+  if [[ "$sp_state" == enabled ]]; then
     echo "present: superpowers"
+  elif [[ "$sp_state" == disabled ]]; then
+    # Installed but disabled ships no skills. Enable it; do not reinstall.
+    echo "enabling: superpowers (installed but disabled)"
+    claude plugin enable superpowers@claude-plugins-official 2>/dev/null \
+      || echo "  failed — enable by hand: claude plugin enable superpowers@claude-plugins-official" >&2
   elif command -v claude >/dev/null 2>&1; then
     echo "installing: superpowers"
     claude plugin install superpowers@claude-plugins-official --yes 2>/dev/null \
