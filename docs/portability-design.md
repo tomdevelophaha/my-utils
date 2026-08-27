@@ -110,7 +110,7 @@ All six referenced superpowers skills exist upstream (`brainstorming`,
 
 ## Scope
 
-Six SKILL.md files, `setup.sh` (`--with-deps`, `--configure`), new
+Five SKILL.md files (quick-summary has no dependencies), `setup.sh` (`--with-deps`, `--configure`), new
 `doctor.sh`, new `vendor/skills/linus/`, new `tests/test-fallbacks.sh`,
 README + CLAUDE.md.
 
@@ -120,3 +120,26 @@ README + CLAUDE.md.
   separate concern).
 - Installing `gh` or authenticating it — doctor reports, the user decides.
 - Any change to a tier's boundaries, escalation chain, or review shape.
+
+## Outcome
+
+Shipped, then substantially corrected by review (commit 67a2ab5 onward).
+
+The portability design held. The verification did not: a seven-agent `/linus`
+fan-out found five criticals and proved three of the four test suites vacuous by
+mutation — T3 passed with `with_deps` running on every invocation, and doctor's
+gsd and linus checks passed when hardcoded to `if true`. The drift guard, the
+centrepiece of this design, passed on a repo containing zero skills and could
+not see bare `gsd-*` or Kanban references, so `jot-down-task-github` shipped
+with no fallback table at all while the guard reported clean.
+
+Also corrected: `setup.sh` never repaired a stale symlink, so moving the repo
+silently disconnected every skill — the exact operation portability is meant to
+survive; the Kanban helper returned 1 when it had no id, aborting any tier
+running under `set -e`, and created a duplicate card on any transient read
+failure; and CLAUDE.md declared an unconditional card lifecycle that the same
+change had just made optional.
+
+The lesson worth keeping: every one of those defects was in the code that
+*checks*, not the code that *works*. A guard nobody has tried to fool is a
+guard that passes.
