@@ -1,8 +1,8 @@
 # CLAUDE.md — my-utils (private skill library · brownfield / per-visit finite)
 
-Markdown skill definitions, plus small shared shell helpers under `bin/` when
-several skills would otherwise carry copies of the same commands. No build step,
-no application code. A change here alters Claude's behavior on every machine
+Markdown skill definitions, plus shell in exactly three places: `bin/` for
+helpers several skills share, `tests/` for the suites, and the two root
+installers (`setup.sh`, `doctor.sh`). No build step, no application code. A change here alters Claude's behavior on every machine
 that has run `setup.sh` — treat every edit as a behavior change, not a docs
 edit.
 
@@ -19,9 +19,10 @@ edit.
 ./tests/test-fallbacks.sh  # must print PASS — run after ANY change to a skill's dependencies
 ```
 
-There is no test suite for skill *content*. Verification for a `SKILL.md` change
-is: re-read the flow end to end, confirm every referenced skill, command, and
-path exists, and run `./tests/test-fallbacks.sh`.
+The only automated check on skill *content* is the fallback drift guard. Flow
+correctness is still verified by hand: re-read the flow end to end and confirm
+every referenced skill, command, and path exists — then run
+`./tests/test-fallbacks.sh`.
 
 ## Hard constraints
 
@@ -38,21 +39,26 @@ path exists, and run `./tests/test-fallbacks.sh`.
   loading the skill. It must state when to use it, the pipeline in one line,
   and the explicit trigger. Never shorten it to a title.
 - Never invent a skill, command, or board id in a flow. Every `/gsd-*`,
-  `superpowers:*`, `/linus`, and `gh project` reference must be one that
-  actually exists.
+  `superpowers:*`, `/linus`, vendored-skill, and `kanban.sh` verb
+  (`find-or-create`, `move in-progress|review|done`) must be one that actually
+  exists.
 
 ## Portability
 
 Every machine is assumed to be missing something. See `docs/portability-design.md`.
 
-- **No skill may hardcode a board id, project number, or machine path.** The
-  Kanban board lives in `~/.claude/my-utils.config`; skills call
-  `~/.claude/my-utils/kanban.sh`. Skills run from the *user's project*
-  directory, so any helper they invoke needs an absolute path — a relative one
-  will not resolve.
+- **No skill may hardcode a board id, project number, or repo path.** The Kanban
+  board lives in `~/.claude/my-utils.config`. Skills run from the *user's
+  project* directory, so anything they invoke needs an absolute path — a
+  relative `./doctor.sh` does not exist there. The two installed entry points
+  are the only absolute paths a skill may name:
+  `~/.claude/my-utils/kanban.sh` and `~/.claude/my-utils/doctor.sh`.
 - **Every external dependency a skill names needs a row in that skill's
-  `## Fallbacks` table.** `tests/test-fallbacks.sh` enforces this and will fail
-  the moment a new dependency arrives without one.
+  `## Fallbacks` table.** `tests/test-fallbacks.sh` enforces this for the
+  dependency families it knows: `superpowers:*`, `gsd-*`, `linus`, `graphify`,
+  and the Kanban board (`kanban`/`gh`). A dependency outside those names is
+  invisible to it — **add the pattern when you add the dependency**, or the
+  guard silently stops guarding.
 - **A missing dependency degrades the step; it never silently skips it.** Keep
   the invariant, drop the mechanism — without the TDD skill you still write the
   failing test first. Two exceptions: escalation exits (`/gsd-*`) **STOP**
@@ -74,12 +80,14 @@ new-feature --(exceeds one context window)----------------------> long-running-j
 
 - Change one tier's boundary → update the tiers on both sides of it, their
   frontmatter descriptions, and the README table in the same commit.
-- Every tier keeps the same spine: Kanban card In Progress → real verification
-  before the commit → card Ready For Review → `/linus` review → card Done. The
-  board has four columns and the card visits three of them; a card that jumps
-  In Progress straight to Done means the review stage was skipped.
-  `super-quick` only moves a card that already matches and never creates one;
-  the heavier tiers find-or-create.
+- Every tier keeps the same spine: **real verification before the commit →
+  `/linus` review → closeout.** That spine does not depend on a board. Where one
+  is configured the card mirrors it (In Progress → Ready For Review → Done) and
+  never gates the work; where none is, the card steps are silent and the spine
+  is unchanged. `super-quick` only moves a card that already matches and never
+  creates one; the heavier tiers find-or-create. Whether the review actually ran
+  is answered by `git log`, which exists on every machine — never by which
+  column a card sits in.
 - Review is never a whole-diff blob scan above the chore tier: `bugfix`,
   `new-feature`, and `long-running-job` fan out one subagent per affected
   component.
@@ -94,8 +102,15 @@ new-feature --(exceeds one context window)----------------------> long-running-j
 ```
 tweak a skill        → /my-utils:super-quick
 new skill / redesign → docs/ design note (see docs/design.md, docs/bugfix-design.md)
-                       → write SKILL.md → ./setup.sh → /linus → commit
+                       → write SKILL.md → ./setup.sh
+                       → ./tests/test-fallbacks.sh → /linus → commit
+shell (bin/, tests/,  → edit → the matching tests/*.sh prints PASS
+setup.sh, doctor.sh)    → /linus → commit
 ```
+
+A change to a SKILL.md is reviewed by `/linus`; a change to this file or to the
+skill set's shape is better served by `claude-md-best-practice`, which reads
+rules as constraints rather than as code.
 
 Design notes land in `docs/`; plans in `docs/plans/`. Both are committed — they
 are the only record of why a tier boundary sits where it does.

@@ -6,7 +6,7 @@ plugin, not a marketplace (see `docs/design.md` for why).
 
 ## Install
 
-On a new machine, three commands:
+On a new machine:
 
 ```bash
 git clone git@github.com:tomdevelophaha/my-utils.git ~/Desktop/Project/claude-skills
@@ -45,7 +45,10 @@ which ships no skills while looking installed — from one that is missing,
 because the fix differs (`claude plugin enable` vs. install).
 
 `tests/test-fallbacks.sh` fails if any skill names a dependency without
-declaring a fallback for it, so this table cannot quietly drift out of date.
+declaring a fallback for it, so this table cannot quietly drift out of date —
+for the dependency families it knows (`superpowers:*`, `gsd-*`, `linus`,
+`graphify`, `kanban`/`gh`). Adding a dependency outside those names means
+adding its pattern to the guard too.
 
 ## Kanban is optional
 
@@ -73,8 +76,8 @@ up through the symlink with no re-run.
 ./tests/test-fallbacks.sh  # every dependency has a declared fallback
 ```
 
-Each prints `PASS`. Run all four after any change to `setup.sh`, `bin/`, or a
-skill's dependency list.
+Each prints `PASS`. Run all four after any change to `setup.sh`, `doctor.sh`,
+`bin/`, or a skill's dependency list.
 
 ## Skills
 
@@ -87,9 +90,10 @@ skill's dependency list.
 | `new-feature` | New capability — integrations, UI subsystems, login flows. | Too big for one context window → `long-running-job` |
 | `long-running-job` | Overnight refactors, migrations, bulk changes across sessions. | Never re-plans; requires an approved plan + test list up front |
 
-The tiers share a spine: a GitHub Projects card moved through In Progress →
-Ready For Review → Done, a real verification step before the commit, and a
-`/linus` review before closeout.
+The tiers share a spine: a real verification step before the commit, and a
+`/linus` review before closeout. Where a board is configured, a card mirrors
+that spine (In Progress → Ready For Review → Done); where none is, the card
+steps are silent and nothing else changes.
 `super-quick` runs the micro version — it only moves a card that already
 matches, and reviews inline. The three heavier tiers find-or-create the card,
 fan the review out across one subagent per affected component, and delegate
@@ -99,7 +103,8 @@ by GSD.
 ### Utilities
 
 - `quick-summary` — one recap paragraph + a short next-steps list, nothing else.
-- `jot-down-task-github` — draft an item on the GitHub Projects V2 board (#1).
+- `jot-down-task-github` — draft an item on this machine's configured board,
+  and say so plainly when there isn't one.
 
 ## Add a skill
 
