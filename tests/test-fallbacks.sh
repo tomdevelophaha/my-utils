@@ -3,43 +3,81 @@
 # fallback. This is the check that would have caught superpowers going
 # unavailable without a single skill noticing.
 set -uo pipefail
+shopt -s nullglob
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Print every external dependency referenced in a SKILL.md, one per line.
 # Only the body counts; the frontmatter description names skills descriptively.
+# Returns non-zero when the file cannot be parsed — "no dependencies found" and
+# "could not read it" must never look the same.
 refs() {
-  awk 'BEGIN{fm=0} /^---$/{fm++; next} fm>=2' "$1" \
-    | grep -oE 'superpowers:[a-z-]+|/gsd-[a-z-]+|\blinus\b|\bgraphify\b' \
-    | sed 's/^\///' \
-    | sort -u
+  local file="$1" body delims
+  delims="$(tr -d '\r' < "$file" | grep -c '^---$' || true)"
+  [[ "$delims" -ge 2 ]] || return 1
+  body="$(tr -d '\r' < "$file" | awk 'BEGIN{fm=0} /^---$/{fm++; next} fm>=2')"
+  [[ -n "$body" ]] || return 1
+  # Bare `gsd-x` counts as much as `/gsd-x`; so does an unprefixed kanban or gh
+  # dependency, which is what let jot-down-task-github pass with no table.
+  # `|| true`: a skill with no dependencies is not a parse failure. Under
+  # pipefail, grep's no-match exit would otherwise be read as one.
+  { grep -oE 'superpowers:[a-z-]+|/?gsd-[a-z-]+|\blinus\b|\bgraphify\b|\bkanban\b|\bgh\b' <<<"$body" || true; } \
+    | sed 's|^/||' | sort -u
 }
 
-# The rows of the file's "## Fallbacks" section.
+# The TABLE ROWS of the file's "## Fallbacks" section — rows only, so a mention
+# in the surrounding prose cannot stand in for a declared fallback.
 declared() {
-  awk '/^## Fallbacks/{f=1; next} /^## /{f=0} f' "$1"
+  tr -d '\r' < "$1" | awk '/^## Fallbacks/{f=1; next} /^## /{f=0} f' | grep '^|' || true
 }
 
 check() {   # $1 = SKILL.md ; prints failures, returns 1 if any
-  local file="$1" rc=0 dep
-  local body decl
-  body="$(refs "$file")"
+  local file="$1" rc=0 dep body decl
+  if ! body="$(refs "$file")"; then
+    echo "  $file: could not parse frontmatter/body — the guard cannot see its dependencies"
+    return 1
+  fi
   [[ -z "$body" ]] && return 0
   decl="$(declared "$file")"
   if [[ -z "$decl" ]]; then
-    echo "  $file: references external dependencies but has no '## Fallbacks' section"
+    echo "  $file: references external dependencies but has no '## Fallbacks' table"
     return 1
   fi
   while read -r dep; do
     [[ -z "$dep" ]] && continue
-    grep -qF "$dep" <<<"$decl" || { echo "  $file: no fallback declared for '$dep'"; rc=1; }
+    # Must appear inside a row, delimited — so a row for `superpowers:foo-v2`
+    # does not satisfy a dependency on `superpowers:foo`.
+    grep -qEi "^\|[^|]*(^|[^a-zA-Z0-9:_-])${dep//./\\.}([^a-zA-Z0-9:_-]|$)" <<<"$decl" \
+      || { echo "  $file: no fallback row declared for '$dep'"; rc=1; }
   done <<<"$body"
   return $rc
 }
 
-# --- self-test: a fixture with an undeclared dependency must be caught -------
+# --- self-test: one undeclared dependency of EVERY supported form -----------
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-cat > "$tmp/SKILL.md" <<'FIX'
+selftest_fail() { echo "FAIL: $*"; exit 1; }
+
+cat > "$tmp/undeclared.md" <<'FIX'
+---
+name: fixture
+---
+# Fixture
+Execute via superpowers:executing-plans, escalate to gsd-execute-phase and
+/gsd-debug, review with linus, scan with graphify, card via kanban and gh.
+## Fallbacks
+| Dependency | Absent |
+|---|---|
+| nothing | nothing |
+FIX
+if out="$(check "$tmp/undeclared.md")"; then
+  selftest_fail "guard passed a skill with undeclared dependencies"
+fi
+for form in 'superpowers:executing-plans' 'gsd-execute-phase' 'gsd-debug' linus graphify kanban gh; do
+  grep -q -- "$form" <<<"$out" || selftest_fail "guard did not name the undeclared '$form'"
+done
+
+# a file whose deps ARE declared must pass
+cat > "$tmp/declared.md" <<'FIX'
 ---
 name: fixture
 ---
@@ -48,22 +86,50 @@ Execute via superpowers:executing-plans.
 ## Fallbacks
 | Dependency | Absent |
 |---|---|
-| Kanban | skip |
+| `superpowers:executing-plans` | run the tasks in order |
 FIX
-if out="$(check "$tmp/SKILL.md")"; then
-  echo "FAIL: T9: guard passed a skill with an undeclared dependency"; exit 1
-fi
-grep -q 'superpowers:executing-plans' <<<"$out" \
-  || { echo "FAIL: T9: guard did not name the undeclared dependency"; exit 1; }
+check "$tmp/declared.md" >/dev/null || selftest_fail "guard rejected a correctly declared skill"
+
+# a near-miss row must NOT satisfy the real dependency
+cat > "$tmp/nearmiss.md" <<'FIX'
+---
+name: fixture
+---
+# Fixture
+Execute via superpowers:executing-plans.
+## Fallbacks
+| Dependency | Absent |
+|---|---|
+| `superpowers:executing-plans-v2` | wrong skill |
+FIX
+check "$tmp/nearmiss.md" >/dev/null && selftest_fail "a near-miss row satisfied a different dependency"
+
+# an unparseable file must fail loudly, not pass by finding nothing
+printf 'no frontmatter here\nsuperpowers:brainstorming\n' > "$tmp/broken.md"
+check "$tmp/broken.md" >/dev/null && selftest_fail "an unparseable skill passed silently"
+
+# CRLF line endings must not hide a dependency
+printf -- '---\r\nname: fixture\r\n---\r\n\r\nUse superpowers:brainstorming.\r\n' > "$tmp/crlf.md"
+check "$tmp/crlf.md" >/dev/null && selftest_fail "a CRLF file hid its undeclared dependency"
+
+# a skill with NO dependencies is fine and must not be called unparseable
+printf -- '---\nname: fixture\n---\n\nJust prose, no dependencies.\n' > "$tmp/nodeps.md"
+check "$tmp/nodeps.md" >/dev/null || selftest_fail "a dependency-free skill was reported as broken"
 
 # --- T10: the real skills must all declare their fallbacks ------------------
-rc=0
+rc=0; count=0
 for f in "$ROOT"/skills/*/SKILL.md; do
+  count=$((count + 1))
   check "$f" || rc=1
 done
+# Without a floor the whole guard passes on an empty skills/ directory.
+if [[ "$count" -lt 4 ]]; then
+  echo "FAIL: only $count skills checked — the guard is not seeing the library"
+  exit 1
+fi
 if [[ $rc -ne 0 ]]; then
-  echo "FAIL: T10: a skill names an external dependency with no declared fallback"
+  echo "FAIL: a skill names an external dependency with no declared fallback"
   exit 1
 fi
 
-echo "PASS"
+echo "PASS ($count skills checked)"

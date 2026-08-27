@@ -30,8 +30,9 @@ sessions are interchangeable. The job never depends on any session's memory.
 1. **Gate (hard refusal)** — a job may NOT start without:
    - an approved plan at `docs/superpowers/plans/*.md`
    - an approved test list inside that plan
-   Missing either → route the user to superpowers:brainstorming +
-   superpowers:writing-plans, then STOP. Do not "just start".
+   Missing either → route the user to /my-utils:new-feature, which owns
+   discovery and planning and carries its own fallbacks, then STOP. Do not
+   "just start".
    Usual entry is /my-utils:new-feature's scale check handing the plan over
    once it will not execute inside one context window; its approved plan +
    test list satisfy this gate as-is — never re-approve or re-plan them.
@@ -45,7 +46,8 @@ sessions are interchangeable. The job never depends on any session's memory.
      `~/.claude/my-utils/kanban.sh move "<slug>" in-progress`
      (optional — exits 0 silently when no board is configured)
 3. **Unit loop** — for the unit whose status is `next`:
-   a. Execute via superpowers:executing-plans + TDD. ONE atomic commit per unit.
+   a. Execute via superpowers:executing-plans + superpowers:test-driven-development.
+      ONE atomic commit per unit.
    b. **Gates**: typecheck + lint + the unit's tests. Commands come from the
       project CLAUDE.md; if absent, ask the user ONCE and record them in the
       job file Log.
@@ -96,18 +98,19 @@ sessions are interchangeable. The job never depends on any session's memory.
 
 ## Fallbacks
 
-A missing dependency degrades the step; it never silently skips it. The plan
-gate is the one thing that never degrades — a job without an approved plan and
-test list is refused regardless of what is installed. `./doctor.sh` reports
-what this machine has.
+Before invoking any dependency below, if it is not installed, follow its row
+instead of improvising. The plan gate never degrades — a job without an
+approved plan and test list is refused regardless of what is installed. The
+Kanban board is optional bookkeeping and skips silently.
+`~/.claude/my-utils/doctor.sh` reports what is installed.
 
 | Dependency | Absent → |
 |---|---|
 | `superpowers:executing-plans` | Execute the unit's plan tasks in order, one atomic commit per unit, exactly as the plan states. |
-| `superpowers:brainstorming`, `superpowers:writing-plans` | Named only in the step 1 refusal message. With them absent, still refuse, and point the user at `/my-utils:new-feature`, which carries its own inline fallbacks for both. |
+| `superpowers:test-driven-development` | Write each task's failing test first, watch it fail, then implement. The invariant holds — never modify a test to make it pass. |
 | `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
 | `graphify` | Build the scan set with grep over the import path + symbol. |
-| Kanban (`gh` / config) | Skip every card step silently. |
+| Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
 
 ## Job file contract
 

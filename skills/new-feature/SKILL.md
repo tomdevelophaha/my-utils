@@ -44,8 +44,9 @@ command auto-execute the plan.
    until it exists.
 3. **Breakdown (PLAN ONLY)** — GSD decomposes the spec into tasks. Run
    `/gsd-quick` with the explicit instruction "PLAN ONLY — write the plan, stop
-   before execution". If gsd-quick cannot stop, fall back to
-   superpowers:writing-plans with GSD conventions (task table, atomic commits).
+   before execution". If gsd-quick cannot stop, or GSD is not
+   installed, use the `## Fallbacks` row for it — the plan still carries the
+   task table and the test list.
    Plan lands in `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`.
    The plan MUST include a test list per task (test name + asserted behavior).
    Plan approval is a hard double gate: plan approved AND test list approved —
@@ -54,7 +55,7 @@ command auto-execute the plan.
 4. **Scale check** — two escalations on different axes; both can fire:
    - **Plan shape** — exceeds plan-file scale (multi-week, cross-cutting) → wrap
      as a GSD phase instead: `/gsd-plan-phase` (ROADMAP line + phases/NN-*),
-     then execution continues through gsd-execute-phase + superpowers TDD.
+     then execution continues through /gsd-execute-phase + superpowers TDD.
    - **Endurance** — the approved plan will not execute inside one context
      window (bulk mechanical edits across many files, an overnight run) → STOP
      at the plan gate and hand the plan to /my-utils:long-running-job. Do not
@@ -96,21 +97,23 @@ command auto-execute the plan.
 
 ## Fallbacks
 
-A missing dependency degrades the step; it never silently skips it. Escalation
-exits are the one exception — they STOP, because improvising past a handoff
-gate defeats the gate. `./doctor.sh` reports what this machine has.
+Before invoking any dependency below, if it is not installed, follow its row
+instead of improvising. A missing dependency degrades the step; it never
+silently skips it. Two exceptions: escalation exits STOP rather than improvise,
+because improvising past a handoff gate defeats it; and the Kanban board is
+optional bookkeeping. `~/.claude/my-utils/doctor.sh` reports what is installed.
 
 | Dependency | Absent → |
 |---|---|
 | `superpowers:brainstorming` | Ask the unanswered questions inline, one decision at a time, then write the same spec to the same path. The gate holds — no breakdown until the user approves it. |
-| `superpowers:writing-plans` | Write the plan by hand in GSD form: task table, atomic commit per task, and a test list naming each test and the behavior it asserts. |
+| `superpowers:writing-plans` | Write the plan by hand in GSD form: task table, atomic commit per task, and a test list naming each test and the behavior it asserts. The double gate holds — the user approves plan AND test list before execution. |
 | `superpowers:executing-plans` | Execute the plan task by task, one atomic commit each, in the planned order. |
 | `superpowers:test-driven-development` | Write each task's failing test first, watch it fail, then implement. The invariant holds — execution never starts without an approved test list. |
 | `superpowers:using-git-worktrees` | `git worktree add ../<slug> -b <branch>` directly (`--offload` only). |
-| `/gsd-quick`, `/gsd-plan-phase` | Breakdown falls back to writing the plan by hand as above. For a phase-scale wrap with no GSD installed, **STOP** and tell the user, rather than inventing a phase structure. |
+| `/gsd-quick`, `/gsd-plan-phase`, `/gsd-execute-phase` | Breakdown falls back to writing the plan by hand as above. For a phase-scale wrap with no GSD installed, **STOP** and tell the user, rather than inventing a phase structure. |
 | `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
 | `graphify` | Build the scan set with grep over the import path + symbol. |
-| Kanban (`gh` / config) | Skip every card step silently. |
+| Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
 
 ## Hard rules
 

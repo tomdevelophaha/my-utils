@@ -1,6 +1,6 @@
 ---
 name: my-utils:super-quick
-description: Use for chores and tiny fixes — a few lines, field/title updates, small tweaks. Runs edit → tests → atomic commit → /linus micro-review, with GitHub Kanban card lifecycle. Trigger via /my-utils:super-quick, "super quick", or "quick chore".
+description: Use for chores and tiny fixes — a few lines, field/title updates, small tweaks. Runs edit → tests → atomic commit → /linus micro-review, with an optional GitHub Kanban card lifecycle. Trigger via /my-utils:super-quick, "super quick", or "quick chore".
 allowed-tools:
   - Bash
   - Read
@@ -43,13 +43,15 @@ Few-line tasks only. No GSD, no TDD ceremony, no STATE.md writes. Git log is the
 
 ## Fallbacks
 
-A missing dependency degrades the step; it never silently skips it.
-Run `./doctor.sh` to see what this machine actually has.
+Before invoking any dependency below, if it is not installed, follow its row
+instead of improvising. A missing dependency degrades the step; it never
+silently skips it — except the Kanban board, which is optional bookkeeping.
+Run `~/.claude/my-utils/doctor.sh` to see what this machine actually has.
 
 | Dependency | Absent → |
 |---|---|
 | `linus` | It is vendored here, so `./setup.sh` is the whole fix. If it is still missing, review the diff yourself against: does this belong in the data structure, is it a special case that should not exist, is anything gratuitously complex, does it break an existing caller. |
-| Kanban (`gh` / config) | Skip every card step silently. |
+| Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
 
 ## Hard rules
 

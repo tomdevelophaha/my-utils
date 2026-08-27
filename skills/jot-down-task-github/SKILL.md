@@ -1,6 +1,6 @@
 ---
 name: my-utils:jot-down-task-github
-description: Use when the user says "Jot down task: <name>" or asks to add a task, TODO, or item to the project's GitHub Projects Kanban board.
+description: Use when the user says "Jot down task: <name>" or asks to add a task, TODO, or item to this machine's configured GitHub Projects Kanban board. Reports plainly when no board is configured rather than silently dropping the task.
 allowed-tools:
   - Bash
 triggers:
@@ -31,19 +31,28 @@ Cold jot — title only, no body:
   per machine by `./setup.sh --configure`. No board id is hardcoded here.
 - A title that already exists is returned rather than duplicated.
 
-## No board configured
+## Confirm it landed
 
-The helper exits 0 silently when there is no config, no `gh`, or no auth.
-That is indistinguishable from success, so when the user asked for a jot,
-confirm it landed:
+Silence is not success. The helper prints the item id when the card exists or
+was created, and prints nothing when this machine simply has no board — those
+look identical on stdout, so never assume.
 
-```bash
-~/.claude/my-utils/kanban.sh find-or-create "<task name>" "<body>"   # prints the item id
-```
+- **An id was printed** → the task is captured. Say so.
+- **Nothing on stdout, nothing on stderr** → there is no board configured here.
+  Tell the user plainly and point at `./setup.sh --configure` in the my-utils
+  checkout.
+- **Nothing on stdout but a `kanban:` line on stderr** → there IS a board and
+  the write failed (expired auth, no network, deleted board). Report that
+  reason; do NOT tell the user to re-run `--configure`, which would be wrong
+  advice. `~/.claude/my-utils/doctor.sh` shows which it is.
 
-No id printed → no board on this machine. Say so plainly and tell the user to
-run `./setup.sh --configure` (or `./doctor.sh` to see why). Never claim a task
-was captured when it was not.
+Never claim a task was captured when no id came back.
+
+## Fallbacks
+
+| Dependency | Absent → |
+|---|---|
+| Kanban / `gh` (the board) | Nothing is captured. Unlike the work tiers — where the card is optional bookkeeping — capture IS this skill's entire job, so say plainly that the task was not recorded rather than failing silently. Offer to note it in the conversation or a file instead. |
 
 ## Body rule
 

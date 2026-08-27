@@ -64,7 +64,7 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
 
 A missing dependency degrades the step; it never silently skips it. Escalation
 exits are the one exception — they STOP, because improvising past a handoff
-gate defeats the gate. `./doctor.sh` reports what this machine has.
+gate defeats the gate. `~/.claude/my-utils/doctor.sh` reports what this machine has.
 
 | Dependency | Absent → |
 |---|---|
@@ -73,7 +73,7 @@ gate defeats the gate. `./doctor.sh` reports what this machine has.
 | `/gsd-debug` | **STOP.** Report the root cause found so far and why it outgrew a single fix, then hand back to the user. Do not improvise past the escalation gate. Offer `./setup.sh --with-deps` to install GSD. |
 | `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
 | `graphify` | Build the scan set with grep over the import path + symbol. Already the documented path when the repo has no graph. |
-| Kanban (`gh` / config) | Skip every card step silently. |
+| Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
 
 ## Hard rules
 
