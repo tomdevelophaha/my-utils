@@ -3,15 +3,21 @@ set -euo pipefail
 
 fail() { echo "FAIL: $*"; exit 1; }
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/home"
+
+# The vendored dependency must actually exist; every tier's linus fallback and
+# doctor.sh both assume it does.
+[[ -d "$ROOT/vendor/skills/linus" ]] || { echo "FAIL: vendor/skills/linus is missing"; exit 1; }
 
 src="$tmp/src"; vnd="$tmp/vendor"; tgt="$tmp/target"
 mkdir -p "$src/skill-a" "$vnd/linus" "$tgt"
 mkdir -p "$tgt/skill-b"   # real dir that must NOT be clobbered
 
-run() { MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
-        MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh "$@"; }
+run() { env HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+        MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" "$@"; }
 
 run
 [[ -L "$tgt/skill-a" ]] || fail "skill-a not symlinked"
@@ -29,11 +35,15 @@ run
 [[ -d "$tgt/linus" && ! -L "$tgt/linus" ]] || fail "T2: real linus clobbered"
 [[ "$(cat "$tgt/linus/SKILL.md")" == mine ]] || fail "T2: real linus overwritten"
 
-# T3 — the default run performs no network install, even with no tooling present
-out="$(env PATH=/usr/bin:/bin MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
-        MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh 2>&1)" \
-  || fail "T3: default run failed without npx/claude on PATH"
-grep -qiE 'install|fetch|clon' <<<"$out" && fail "T3: default run attempted an install"
+# T13 — a stale or repointed symlink is REPAIRED, not silently left dangling.
+# Moving or re-cloning the repo must not quietly disconnect every skill.
+ln -sfn "$tmp/gone/skill-a" "$tgt/skill-a"
+run >/dev/null
+[[ -e "$tgt/skill-a" ]] || fail "T13: dangling symlink not repaired — a moved repo stays broken"
+[[ "$(readlink "$tgt/skill-a")" == "$src/skill-a" ]] || fail "T13: symlink not repointed at the current checkout"
+
+# T14 — an unknown flag is rejected, never silently treated as a plain run
+run --with-deeps >/dev/null 2>&1 && fail "T14: a typo'd flag exited 0, so a user believes deps were installed"
 
 # T12 — the kanban helper is installed at a stable absolute path, because
 # skills execute from the user's project directory, not from this repo.
@@ -42,6 +52,9 @@ env HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
     MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh >/dev/null
 [[ -e "$helper" ]] || fail "T12: helper not installed at ~/.claude/my-utils/kanban.sh"
 [[ -x "$helper" ]] || fail "T12: installed helper is not executable"
+[[ -L "$helper" ]] || fail "T12: helper is not a symlink"
+[[ "$(readlink "$helper")" == "$ROOT/bin/kanban.sh" ]] || fail "T12: helper points outside this checkout"
+[[ -e "$tmp/home/.claude/my-utils/doctor.sh" ]] || fail "T12: doctor.sh not installed at an absolute path (skills reference it)"
 ( cd "$tmp" && "$helper" move "x" done ) || fail "T12: helper not runnable from another cwd"
 
 # --- bootstrap stubs -------------------------------------------------------
@@ -56,6 +69,14 @@ echo "npx \$*" >> "$log"
 STUB
 chmod +x "$bin/claude" "$bin/npx"
 
+# T3 — the DEFAULT run installs nothing, asserted on behavior rather than on
+# the absence of words. The old version stripped PATH so the install branches
+# were unreachable, and passed even when with_deps ran on every invocation.
+: > "$log"
+env PATH="$bin:/usr/bin:/bin" HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" \
+    MY_UTILS_VENDOR_DIR="$vnd" MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" >/dev/null
+[[ ! -s "$log" ]] || fail "T3: the default run invoked an installer: $(cat "$log")"
+
 # T5 — --with-deps issues the verified non-interactive commands
 : > "$log"
 env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
@@ -64,6 +85,8 @@ grep -q -- 'plugin install superpowers@claude-plugins-official --yes' "$log" \
   || fail "T5: superpowers install command wrong or missing"
 grep -q -- '@opengsd/gsd-core@latest --claude --global' "$log" \
   || fail "T5: gsd install command wrong or missing"
+grep -q -- 'npx --yes' "$log" \
+  || fail "T5: npx lacks --yes and will prompt, hanging a fresh-machine bootstrap"
 
 # T4 — deps already present → --with-deps installs nothing
 mkdir -p "$tgt/gsd-quick" "$tgt/superpowers"

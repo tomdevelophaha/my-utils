@@ -11,6 +11,11 @@ CONFIG="${MY_UTILS_CONFIG:-$HOME/.claude/my-utils.config}"
 # Resolve this machine's GitHub Projects board once and write it to CONFIG, so
 # no board id is ever baked into a skill. Kanban is optional: if anything here
 # is unavailable the tiers simply skip their card steps.
+status_option() {   # $1 = field-list json, $2 = column name -> option id
+  jq -r --arg n "$2" \
+    '.fields[] | select(.name == "Status") | .options[]? | select(.name == $n) | .id' <<<"$1"
+}
+
 configure() {
   local number="${1:-1}"
   if ! command -v gh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
@@ -27,19 +32,34 @@ configure() {
   status_field="$(jq -r '.fields[] | select(.name == "Status") | .id' <<<"$fields")"
   [[ -n "$status_field" ]] || { echo "configure: project #$number has no Status field" >&2; return 1; }
 
-  opt() { jq -r --arg n "$1" \
-    '.fields[] | select(.name == "Status") | .options[]? | select(.name == $n) | .id' <<<"$fields"; }
+  local in_progress review done_id
+  in_progress="$(status_option "$fields" "In Progress")"
+  review="$(status_option "$fields" "Ready For Review")"
+  done_id="$(status_option "$fields" "Done")"
+
+  # Write nothing unless every id resolved. A config with an empty option id
+  # makes the matching card move a silent no-op — worse than no config at all.
+  local missing=""
+  [[ -z "$in_progress" ]] && missing+=" 'In Progress'"
+  [[ -z "$review" ]] && missing+=" 'Ready For Review'"
+  [[ -z "$done_id" ]] && missing+=" 'Done'"
+  if [[ -n "$missing" ]]; then
+    echo "configure: project #$number has no Status column named:$missing" >&2
+    echo "configure: rename the columns to match, or edit $CONFIG by hand" >&2
+    return 1
+  fi
 
   mkdir -p "$(dirname "$CONFIG")"
-  cat > "$CONFIG" <<CFG
+  cat > "$CONFIG.tmp" <<CFG
 # Written by setup.sh --configure. Per-machine; never committed.
 MY_UTILS_PROJECT_NUMBER=$number
 MY_UTILS_PROJECT_ID=$project_id
 MY_UTILS_STATUS_FIELD=$status_field
-MY_UTILS_OPT_IN_PROGRESS=$(opt "In Progress")
-MY_UTILS_OPT_REVIEW=$(opt "Ready For Review")
-MY_UTILS_OPT_DONE=$(opt "Done")
+MY_UTILS_OPT_IN_PROGRESS=$in_progress
+MY_UTILS_OPT_REVIEW=$review
+MY_UTILS_OPT_DONE=$done_id
 CFG
+  mv "$CONFIG.tmp" "$CONFIG"
   echo "configured: $CONFIG (project #$number)"
 }
 
@@ -78,16 +98,27 @@ with_deps() {
     echo "present: gsd-core"
   elif command -v npx >/dev/null 2>&1; then
     echo "installing: gsd-core"
-    npx @opengsd/gsd-core@latest --claude --global \
+    npx --yes @opengsd/gsd-core@latest --claude --global \
       || echo "  failed — install by hand: npx @opengsd/gsd-core@latest --claude --global" >&2
   else
     echo "skipped: gsd-core (no npx on PATH)" >&2
   fi
 }
 
-case "${1:-}" in
-  --configure) configure "${2:-1}"; exit $? ;;
-esac
+DO_CONFIGURE=0; DO_DEPS=0; PROJECT_ARG=1
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --configure) DO_CONFIGURE=1; [[ "${2:-}" =~ ^[0-9]+$ ]] && { PROJECT_ARG="$2"; shift; } ;;
+    --with-deps) DO_DEPS=1 ;;
+    -h|--help)
+      echo "usage: setup.sh [--with-deps] [--configure [project-number]]"; exit 0 ;;
+    *)
+      echo "setup.sh: unknown argument '$1'" >&2
+      echo "usage: setup.sh [--with-deps] [--configure [project-number]]" >&2
+      exit 2 ;;
+  esac
+  shift
+done
 
 mkdir -p "$TARGET_DIR"
 
@@ -97,9 +128,15 @@ mkdir -p "$TARGET_DIR"
 HELPER_DIR="${MY_UTILS_HELPER_DIR:-$HOME/.claude/my-utils}"
 if [[ -f "$ROOT/bin/kanban.sh" ]]; then
   mkdir -p "$HELPER_DIR"
-  if [[ -L "$HELPER_DIR/kanban.sh" || ! -e "$HELPER_DIR/kanban.sh" ]]; then
-    ln -sfn "$ROOT/bin/kanban.sh" "$HELPER_DIR/kanban.sh"
-  fi
+  for h in kanban.sh doctor.sh; do
+    src_h="$ROOT/bin/$h"; [[ "$h" == doctor.sh ]] && src_h="$ROOT/doctor.sh"
+    [[ -f "$src_h" ]] || continue
+    if [[ -L "$HELPER_DIR/$h" || ! -e "$HELPER_DIR/$h" ]]; then
+      ln -sfn "$src_h" "$HELPER_DIR/$h"
+    else
+      echo "skip: $HELPER_DIR/$h already exists (not a symlink)" >&2
+    fi
+  done
 fi
 
 # Link both the skills authored here and the vendored third-party skills they
@@ -111,6 +148,11 @@ for skill in "$SOURCE_DIR"/*/ "$VENDOR_DIR"/*/; do
   link="$TARGET_DIR/$name"
 
   if [[ -L "$link" ]]; then
+    # A symlink pointing somewhere else (moved or re-cloned repo) is repaired,
+    # not skipped — otherwise every skill silently dangles after a move.
+    [[ "$(readlink "$link")" == "$skill" ]] && continue
+    ln -sfn "$skill" "$link"
+    echo "relinked: $name"
     continue
   elif [[ -e "$link" ]]; then
     echo "skip: $link already exists (not a symlink)" >&2
@@ -121,6 +163,6 @@ for skill in "$SOURCE_DIR"/*/ "$VENDOR_DIR"/*/; do
   echo "linked: $name"
 done
 
-case "${1:-}" in
-  --with-deps) with_deps ;;
-esac
+[[ $DO_CONFIGURE -eq 1 ]] && { configure "$PROJECT_ARG" || exit $?; }
+[[ $DO_DEPS -eq 1 ]] && with_deps
+exit 0
