@@ -12,24 +12,38 @@ triggers:
 
 # Jot Down Task
 
-Create a draft item on the project's GitHub Projects V2 Kanban board.
+Create a draft item on this machine's configured GitHub Projects V2 Kanban board.
 
 ## Command
 
-Cold jot — title only:
-
 ```bash
-gh project item-create 1 --owner "@me" --title "<task name>"
+~/.claude/my-utils/kanban.sh find-or-create "<task name>" "<1-2 sentence what + why>"
 ```
 
-With surrounding context — add a body:
+Cold jot — title only, no body:
 
 ```bash
-gh project item-create 1 --owner "@me" --title "<task name>" --body "<1-2 sentence what + why>"
+~/.claude/my-utils/kanban.sh find-or-create "<task name>"
 ```
 
-- Board: "redacted-project Board" — https://github.com/users/OWNER/projects/N
-- Draft items land in the default `Todo` column.
+- Draft items land in the board's default `Todo` column.
+- The board is whichever one `~/.claude/my-utils.config` names, written once
+  per machine by `./setup.sh --configure`. No board id is hardcoded here.
+- A title that already exists is returned rather than duplicated.
+
+## No board configured
+
+The helper exits 0 silently when there is no config, no `gh`, or no auth.
+That is indistinguishable from success, so when the user asked for a jot,
+confirm it landed:
+
+```bash
+~/.claude/my-utils/kanban.sh find-or-create "<task name>" "<body>"   # prints the item id
+```
+
+No id printed → no board on this machine. Say so plainly and tell the user to
+run `./setup.sh --configure` (or `./doctor.sh` to see why). Never claim a task
+was captured when it was not.
 
 ## Body rule
 
@@ -49,5 +63,5 @@ that context — never as a bare link, never invented.
 ## Not for
 
 - Full issues/PRs — use `gh issue create` / `gh pr create`.
-- Editing existing items — use `gh project item-edit --id <item-id> ...`
-  (Status is single-select; see super-quick step 1 for the full flag set).
+- Editing existing items — use `~/.claude/my-utils/kanban.sh move "<title>"
+  in-progress|review|done`, which the work tiers call for their card lifecycle.
