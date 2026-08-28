@@ -105,6 +105,9 @@ by GSD.
 - `quick-summary` — one recap paragraph + a short next-steps list, nothing else.
 - `jot-down-task-github` — draft an item on this machine's configured board,
   and say so plainly when there isn't one.
+- `plain-english` — rewrite a coding report for a non-engineer: a short plain
+  narrative, then a detail block keeping files, root cause, what actually ran,
+  and what is still at risk.
 
 ## Add a skill
 
