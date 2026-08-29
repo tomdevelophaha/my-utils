@@ -94,6 +94,11 @@ The tiers share a spine: a real verification step before the commit, and a
 `/linus` review before closeout. Where a board is configured, a card mirrors
 that spine (In Progress → Ready For Review → Done); where none is, the card
 steps are silent and nothing else changes.
+Context loss never costs work above the chore tier: `new-feature` keeps its
+state in the spec and the plan (task rows carry their commit hashes) and
+resumes with `resume <topic>`; `long-running-job` keeps a job file and resumes
+with `resume <slug>`. Both reconcile against `git log` first — reality wins
+over the file.
 `super-quick` runs the micro version — it only moves a card that already
 matches, and reviews inline. The three heavier tiers find-or-create the card,
 fan the review out across one subagent per affected component, and delegate

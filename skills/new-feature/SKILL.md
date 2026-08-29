@@ -1,6 +1,6 @@
 ---
 name: my-utils:new-feature
-description: "Use for feature work — new capabilities like Apple login, library integrations, UI subsystems. Pipeline: superpowers brainstorming → GSD plan-only breakdown (plan carries test list; double gate: plan + test list approved) → superpowers executing-plans with TDD (user reads core diff at checkpoint) → /linus fan-out review (subagent per affected component) → state closeout (spec Outcome line). Plan too big for one context window → /my-utils:long-running-job. Modes: collaborative (default), --offload (autonomous, worktree), optional --hand-first modifier. Trigger via /my-utils:new-feature."
+description: "Use for feature work — new capabilities like Apple login, library integrations, UI subsystems. Pipeline: superpowers brainstorming → GSD plan-only breakdown (plan carries test list; double gate: plan + test list approved) → superpowers executing-plans with TDD (user reads core diff at checkpoint) → /linus fan-out review (subagent per affected component) → state closeout (spec Outcome line). Context: the spec and plan on disk are the state — /clear at each gate, `resume <topic>` reconciles the plan's task table against git log. Plan too big for one context window → /my-utils:long-running-job. Modes: collaborative (default), --offload (autonomous, worktree), optional --hand-first modifier. Trigger via /my-utils:new-feature."
 allowed-tools:
   - Bash
   - Read
@@ -28,6 +28,25 @@ command auto-execute the plan.
   in the spec's design section. Execution may not start until the sketch
   exists. Opt-in; default off.
 
+## Context
+
+The spec and the plan on disk are the state. The conversation is not — it is
+disposable, and every gate is a place to drop it.
+
+- **Clear points** — after the spec is approved (step 2), after the plan + test
+  list are approved (step 3), and after the core-diff gate (step 5). At each,
+  the artifact must be able to restart the next step ON ITS OWN. If it cannot,
+  fix the artifact before clearing — never a chat summary standing in for it.
+- **Progress lives in the plan** — each task row carries a status and its commit
+  hash, written as the commit lands. No second state file: a job file is the
+  endurance tier's artifact, not this one's.
+- **Resume** — `/my-utils:new-feature resume <topic>` after a /clear or a lost
+  session: read the spec, then the plan, reconcile the task table against
+  `git log`, continue at the first task not done. Reality wins over the table.
+  Full protocol: `references/context-and-resume.md`.
+- **Budget** — past ~60% context, stop at the next gate and clear; never push
+  through a gate to save a round trip.
+
 ## Flow
 
 1. **Kanban start** — find-or-create the card, then move it to In Progress.
@@ -48,7 +67,10 @@ command auto-execute the plan.
    installed, use the `## Fallbacks` row for it — the plan still carries the
    task table and the test list.
    Plan lands in `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`.
-   The plan MUST include a test list per task (test name + asserted behavior).
+   The plan MUST include a test list per task (test name + asserted behavior)
+   and a task table — `| # | task | status | commit |`, statuses
+   `pending` → `next` → `done`, first row `next`. That is the same shape
+   /my-utils:long-running-job uses for units, so a handover copies across.
    Plan approval is a hard double gate: plan approved AND test list approved —
    execution may not start until both. Offload: the user approves plan + test
    list BEFORE the worktree starts; no further approval mid-run.
@@ -61,9 +83,13 @@ command auto-execute the plan.
      at the plan gate and hand the plan to /my-utils:long-running-job. Do not
      start executing and hope to finish. The approved plan + test list transfer
      as-is; that tier requires exactly this artifact and never re-plans.
+     Discovered late instead (a clear is needed INSIDE one task) → hand over
+     mid-flight per `references/context-and-resume.md`; landed commits stay landed.
    Both firing → wrap as a GSD phase first, then run that phase's plan as a job.
 5. **Execute** — superpowers:executing-plans, superpowers TDD inside each task,
-   commit per task. Offload: `superpowers:using-git-worktrees` first.
+   commit per task; mark that task's row `done` + short hash and the next row
+   `next` as each commit lands — before starting the next task, never in a
+   batch at the end. Offload: `superpowers:using-git-worktrees` first.
    Collaborative hard gate: the agent lists the core diff files; the user
    reads them and confirms read (not the summary). `/linus` review may not
    start until confirmed.
@@ -122,4 +148,7 @@ optional bookkeeping. `~/.claude/my-utils/doctor.sh` reports what is installed.
 - Never skip the /linus pass, and never collapse it to one whole-diff scan —
   every affected component gets its own subagent.
 - Never leave the executed plan file behind; never delete the spec.
+- The plan's task table is updated as each commit lands, never retroactively.
+- On resume, reconcile the table against `git log` before doing any work —
+  reality wins over the table.
 - STATE.md stays index-only: if `git log` can tell you, it doesn't go in.

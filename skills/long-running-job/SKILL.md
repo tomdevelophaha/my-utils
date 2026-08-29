@@ -1,6 +1,6 @@
 ---
 name: my-utils:long-running-job
-description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Entered directly, or handed off from /my-utils:new-feature when a plan outgrows one context window. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus fan-out (subagent per affected component). Trigger via /my-utils:long-running-job."
+description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Entered directly, or handed off from /my-utils:new-feature when a plan outgrows one context window — at its plan gate or mid-flight, in which case landed commits are reconciled, never re-run. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus fan-out (subagent per affected component). Trigger via /my-utils:long-running-job."
 allowed-tools:
   - Bash
   - Read
@@ -41,6 +41,11 @@ sessions are interchangeable. The job never depends on any session's memory.
      .gitignore if absent; job files are runtime state, never committed)
    - create `.claude/jobs/<YYYY-MM-DD>-<slug>.md` from the contract below;
      record the plan file's sha256 (`shasum -a 256`)
+   - the plan carries a task table in the same `pending`/`next`/`done`
+     vocabulary — copy its rows into `## Units` as-is. Mid-flight handover from
+     /my-utils:new-feature means some rows already say `done` with a commit:
+     reconcile them against `git log` exactly as step 4 does, then start at
+     `next`. Never re-run a landed unit, and never re-approve the test list.
    - find-or-create the Kanban card → In Progress:
      `~/.claude/my-utils/kanban.sh find-or-create "<slug>" "<1 line>"`
      `~/.claude/my-utils/kanban.sh move "<slug>" in-progress`
