@@ -91,7 +91,7 @@ Each prints `PASS`. Run all four after any change to `setup.sh`, `doctor.sh`,
 | `long-running-job` | Overnight refactors, migrations, bulk changes across sessions. | Never re-plans; requires an approved plan + test list up front |
 
 The tiers share a spine: a real verification step before the commit, and a
-`/linus` review before closeout. Where a board is configured, a card mirrors
+review before closeout. Where a board is configured, a card mirrors
 that spine (In Progress → Ready For Review → Done); where none is, the card
 steps are silent and nothing else changes.
 Context loss never costs work above the chore tier: `new-feature` keeps its
@@ -100,10 +100,23 @@ resumes with `resume <topic>`; `long-running-job` keeps a job file and resumes
 with `resume <slug>`. Both reconcile against `git log` first — reality wins
 over the file.
 `super-quick` runs the micro version — it only moves a card that already
-matches, and reviews inline. The three heavier tiers find-or-create the card,
-fan the review out across one subagent per affected component, and delegate
+matches, and reviews inline with `linus`. The three heavier tiers
+find-or-create the card, delegate the review to `fan-out-review`, and delegate
 execution to superpowers (brainstorming, TDD, executing-plans) with breakdown
 by GSD.
+
+### Shared steps
+
+- `fan-out-review` — the review step the three heavier tiers delegate to, so
+  improving review is one edit instead of three. Two axes, because neither can
+  see the other: one `linus` subagent per affected component finds defects in
+  what changed, and one conformance subagent
+  (`superpowers:requesting-code-review`) finds what the requirements promised
+  and the diff never touched — a requirement nobody implemented produces no
+  diff, so it belongs to no component and no per-component reviewer can see it.
+  Findings are triaged under `superpowers:receiving-code-review` — verified in
+  the code before they are accepted — and handed back. The calling tier does
+  the fixing, because what "green" means differs per tier.
 
 ### Utilities
 

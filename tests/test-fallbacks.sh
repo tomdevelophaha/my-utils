@@ -12,7 +12,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Returns non-zero when the file cannot be parsed — "no dependencies found" and
 # "could not read it" must never look the same.
 refs() {
-  local file="$1" body delims
+  local file="$1" body delims self found
   delims="$(tr -d '\r' < "$file" | grep -c '^---$' || true)"
   [[ "$delims" -ge 2 ]] || return 1
   body="$(tr -d '\r' < "$file" | awk 'BEGIN{fm=0} /^---$/{fm++; next} fm>=2')"
@@ -21,8 +21,14 @@ refs() {
   # dependency, which is what let jot-down-task-github pass with no table.
   # `|| true`: a skill with no dependencies is not a parse failure. Under
   # pipefail, grep's no-match exit would otherwise be read as one.
-  { grep -oE 'superpowers:[a-z-]+|/?gsd-[a-z-]+|\blinus\b|\bgraphify\b|\bkanban\b|\bgh\b' <<<"$body" || true; } \
-    | sed 's|^/||' | sort -u
+  found="$( { grep -oE 'superpowers:[a-z-]+|/?gsd-[a-z-]+|/?my-utils:[a-z-]+|\blinus\b|\bgraphify\b|\bkanban\b|\bgh\b' <<<"$body" || true; } \
+    | sed 's|^/||' | sort -u )"
+  # A skill that names ITSELF — "outgrows this tier → /my-utils:x" inside x — is
+  # not depending on anything. Without this, the my-utils family above would
+  # make every tier declare a fallback for its own absence.
+  self="$(tr -d '\r' < "$file" | sed -n '2,/^---$/s/^name:[[:space:]]*//p' | head -1)"
+  [[ -n "$self" ]] && found="$(grep -vxF -- "$self" <<<"$found" || true)"
+  printf '%s\n' "$found"
 }
 
 # The TABLE ROWS of the file's "## Fallbacks" section — rows only, so a mention
@@ -63,7 +69,8 @@ name: fixture
 ---
 # Fixture
 Execute via superpowers:executing-plans, escalate to gsd-execute-phase and
-/gsd-debug, review with linus, scan with graphify, card via kanban and gh.
+/gsd-debug, promote to /my-utils:new-feature, review with linus, scan with
+graphify, card via kanban and gh.
 ## Fallbacks
 | Dependency | Absent |
 |---|---|
@@ -72,7 +79,8 @@ FIX
 if out="$(check "$tmp/undeclared.md")"; then
   selftest_fail "guard passed a skill with undeclared dependencies"
 fi
-for form in 'superpowers:executing-plans' 'gsd-execute-phase' 'gsd-debug' linus graphify kanban gh; do
+for form in 'superpowers:executing-plans' 'gsd-execute-phase' 'gsd-debug' \
+            'my-utils:new-feature' linus graphify kanban gh; do
   grep -q -- "$form" <<<"$out" || selftest_fail "guard did not name the undeclared '$form'"
 done
 
@@ -103,6 +111,24 @@ Execute via superpowers:executing-plans.
 | `superpowers:executing-plans-v2` | wrong skill |
 FIX
 check "$tmp/nearmiss.md" >/dev/null && selftest_fail "a near-miss row satisfied a different dependency"
+
+# naming ITSELF is not a dependency; naming a SIBLING still is
+cat > "$tmp/selfref.md" <<'FIX'
+---
+name: my-utils:fixture
+---
+# Fixture
+Outgrows this tier → /my-utils:fixture keeps the rest; bigger → /my-utils:other.
+## Fallbacks
+| Dependency | Absent |
+|---|---|
+| nothing | nothing |
+FIX
+if out="$(check "$tmp/selfref.md")"; then
+  selftest_fail "guard passed a skill with an undeclared sibling dependency"
+fi
+grep -q -- 'my-utils:other' <<<"$out" || selftest_fail "guard did not name the undeclared sibling"
+grep -q -- 'my-utils:fixture' <<<"$out" && selftest_fail "guard made a skill its own dependency"
 
 # an unparseable file must fail loudly, not pass by finding nothing
 printf 'no frontmatter here\nsuperpowers:brainstorming\n' > "$tmp/broken.md"

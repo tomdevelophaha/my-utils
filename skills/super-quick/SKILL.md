@@ -50,6 +50,7 @@ Run `~/.claude/my-utils/doctor.sh` to see what this machine actually has.
 
 | Dependency | Absent → |
 |---|---|
+| `my-utils:new-feature` | Authored in my-utils — `./setup.sh` is the fix. Still missing: **STOP.** Report that the task exceeds the chore cap and hand back to the user. Do not half-do it in this tier. |
 | `linus` | It is vendored here, so `./setup.sh` is the whole fix. If it is still missing, review the diff yourself against: does this belong in the data structure, is it a special case that should not exist, is anything gratuitously complex, does it break an existing caller. |
 | Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
 

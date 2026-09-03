@@ -1,6 +1,6 @@
 ---
 name: my-utils:long-running-job
-description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Entered directly, or handed off from /my-utils:new-feature when a plan outgrows one context window — at its plan gate or mid-flight, in which case landed commits are reconciled, never re-run. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review /linus fan-out (subagent per affected component). Trigger via /my-utils:long-running-job."
+description: "Use for coding jobs too big for one context window — overnight refactors, multi-hour migrations, bulk changes. Entered directly, or handed off from /my-utils:new-feature when a plan outgrows one context window — at its plan gate or mid-flight, in which case landed commits are reconciled, never re-run. Endurance layer only: plan-first hard gate, job-file state at .claude/jobs/, fresh session per unit via rewritten Handoff, verification gates per unit, quota pause/resume, --tmux detached mode. Execution inside units is superpowers:executing-plans + TDD; final review my-utils:fan-out-review (linus subagent per affected component, plus a conformance pass against the plan). Trigger via /my-utils:long-running-job."
 allowed-tools:
   - Bash
   - Read
@@ -40,7 +40,9 @@ sessions are interchangeable. The job never depends on any session's memory.
    - ensure `.claude/jobs/` is gitignored in the target repo (append to
      .gitignore if absent; job files are runtime state, never committed)
    - create `.claude/jobs/<YYYY-MM-DD>-<slug>.md` from the contract below;
-     record the plan file's sha256 (`shasum -a 256`)
+     record the plan file's sha256 (`shasum -a 256`) and `git rev-parse HEAD`
+     as `base` — the closeout review diffs against it, and no later session
+     can work it out for itself
    - the plan carries a task table in the same `pending`/`next`/`done`
      vocabulary — copy its rows into `## Units` as-is. Mid-flight handover from
      /my-utils:new-feature means some rows already say `done` with a commit:
@@ -80,22 +82,12 @@ sessions are interchangeable. The job never depends on any session's memory.
    `status: paused-quota`, Log the reset time if the error states one, else
    Log `reset time unknown` (resume then re-attempts), end the turn with
    the quota stop message from step 4.
-6. **Closeout — /linus fan-out** — all units done →
-   `~/.claude/my-utils/kanban.sh move "<slug>" review`, then never scan the whole job's
-   diff as one blob:
-   a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
-      the blast radius: importers/callers of every changed symbol, the routes or
-      UI that consume it, its tests. `graphify query` when the repo has a graph,
-      else grep the import path + symbol. Group into components (module/feature
-      units), not raw files. Cap ~8 — over that, merge the thinnest ones.
-   b. **Fan out** — ONE subagent per component, all dispatched in a single
-      message so they run concurrently. Each invokes the `linus` skill scoped to
-      its component — that component's diff hunks plus the code they touch — and
-      returns findings ONLY (severity, `file:line`, one-line fix direction). No
-      file dumps, no prose.
-   c. **Consolidate** — dedupe across agents, drop style noise, keep real
-      findings. One component in the scan set → skip the fan-out, run linus inline.
-   d. **Fix** — real findings fixed, gates green, committed.
+6. **Closeout — fan-out review** — all units done →
+   `~/.claude/my-utils/kanban.sh move "<slug>" review`, then invoke
+   my-utils:fan-out-review with `base` = the job file's `base`, and the plan's
+   task table and test list as its requirements source. It returns
+   findings per component and a conformance verdict — never scan the whole
+   job's diff as one blob. Fix every surviving finding, gates green, commit.
    Then: `~/.claude/my-utils/kanban.sh move "<slug>" done` → delete `.claude/jobs/<slug>*` (file and launcher
    dir; git is the archive) → delete the executed plan file per new-feature
    convention; the SPEC stays with its Outcome line → STATE.md one Decisions
@@ -113,6 +105,8 @@ Kanban board is optional bookkeeping and skips silently.
 |---|---|
 | `superpowers:executing-plans` | Execute the unit's plan tasks in order, one atomic commit per unit, exactly as the plan states. |
 | `superpowers:test-driven-development` | Write each task's failing test first, watch it fail, then implement. The invariant holds — never modify a test to make it pass. |
+| `my-utils:fan-out-review` | Authored in my-utils — `./setup.sh` is the fix. Still missing: run its flow inline — build the scan set from the diff plus importers/callers (`graphify query`, else grep the import path + symbol), one subagent per component invoking `linus`, one conformance subagent against the same requirements, then verify each finding in the code before fixing. |
+| `my-utils:new-feature` | Authored in my-utils — `./setup.sh` is the fix. Still missing: **STOP.** The plan gate never degrades — report that an approved plan and test list are required first, then hand back to the user. |
 | `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
 | `graphify` | Build the scan set with grep over the import path + symbol. |
 | Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
@@ -128,6 +122,7 @@ plan is ALL a fresh session gets.
     mode: collaborative
     plan: docs/superpowers/plans/<file>.md
     plan-sha256: <sha>
+    base: <git rev-parse HEAD at init>
     test-list: approved YYYY-MM-DD
     fix-attempts: 0
     status: running
@@ -158,11 +153,13 @@ Unit statuses (table column): `pending` → `next` → `done`. Frontmatter
 ## Hard rules
 
 - Never start a job without an approved plan + test list.
+- `base` is recorded at init and never recomputed — a closeout session has only
+  the job file, and a skipped unit's commit is `-`.
 - Handoff is REWRITTEN at boundaries, never appended.
 - Fresh session per unit — never carry one unit's context into the next.
 - Never modify a test to make it pass; that is an automatic `paused-failed`.
 - Reconcile against git log on every resume; reality wins over the file.
 - Job files are never committed; launchers are deleted at closeout.
-- This skill never re-plans (GSD/superpowers own that) and never skips /linus.
+- This skill never re-plans (GSD/superpowers own that) and never skips review.
 - Closeout review is never one whole-diff scan — every affected component gets
-  its own subagent.
+  its own subagent, and conformance is checked against the plan.

@@ -1,6 +1,6 @@
 ---
 name: my-utils:bugfix
-description: "Use for bugs that need root-cause investigation — too complex for super-quick's known-fix chores, but still a single fix (not new capability). Pipeline: reproduce → systematic-debugging (root cause) → failing-test-first fix → /linus fan-out review (subagent per affected component) → closeout. Outgrows single-fix scope → /gsd-debug gate. Trigger via /my-utils:bugfix."
+description: "Use for bugs that need root-cause investigation — too complex for super-quick's known-fix chores, but still a single fix (not new capability). Pipeline: reproduce → systematic-debugging (root cause) → failing-test-first fix → my-utils:fan-out-review (linus subagent per affected component, plus a conformance pass against the root cause) → closeout. Outgrows single-fix scope → /gsd-debug gate. Trigger via /my-utils:bugfix."
 allowed-tools:
   - Bash
   - Read
@@ -43,21 +43,12 @@ Something's already broken. Find the root cause, prove the fix, don't patch the 
    CLAUDE.md / package.json).
 7. **Commit** — one atomic conventional commit (`fix:`); body carries the root cause
    in one plain-language sentence + the proof (test name, or repro steps).
-8. **/linus fan-out review (always)** — `~/.claude/my-utils/kanban.sh move "<bug>" review`
-   first, then never scan the diff as one blob.
-   a. **Scan set** — edited files from `git diff --name-only <base>..HEAD`, plus
-      the blast radius: importers/callers of every changed symbol, the routes or
-      UI that consume it, its tests. `graphify query` when the repo has a graph,
-      else grep the import path + symbol. Group into components (module/feature
-      units), not raw files. Cap ~8 — over that, merge the thinnest ones.
-   b. **Fan out** — ONE subagent per component, all dispatched in a single
-      message so they run concurrently. Each invokes the `linus` skill scoped to
-      its component — that component's diff hunks plus the code they touch — and
-      returns findings ONLY (severity, `file:line`, one-line fix direction). No
-      file dumps, no prose.
-   c. **Consolidate** — dedupe across agents, drop style noise, keep real
-      findings. One component in the scan set → skip the fan-out, run linus inline.
-   d. **Fix** — real findings fixed, full suite re-run green, committed.
+8. **Fan-out review (always)** — `~/.claude/my-utils/kanban.sh move "<bug>" review`
+   first, then invoke my-utils:fan-out-review with `base` = the commit before
+   the fix, and the root cause statement plus the failing test as its
+   requirements source. It returns findings per component and a conformance
+   verdict — never scan the diff as one blob. Fix every surviving finding,
+   re-run the full suite green, commit.
 9. **Kanban closeout** — `~/.claude/my-utils/kanban.sh move "<bug>" done`.
 
 ## Fallbacks
@@ -71,6 +62,9 @@ gate defeats the gate. `~/.claude/my-utils/doctor.sh` reports what this machine 
 | `superpowers:systematic-debugging` | Run the phases inline: read the error, reproduce it consistently, check recent changes, trace the data flow. The invariant holds — no fix before root cause. |
 | `superpowers:test-driven-development` | Write the failing test yourself, watch it fail, then fix until it passes. The invariant holds — no proof, no commit. |
 | `/gsd-debug` | **STOP.** Report the root cause found so far and why it outgrew a single fix, then hand back to the user. Do not improvise past the escalation gate. Offer `./setup.sh --with-deps` to install GSD. |
+| `my-utils:fan-out-review` | Authored in my-utils — `./setup.sh` is the fix. Still missing: run its flow inline — build the scan set from the diff plus importers/callers (`graphify query`, else grep the import path + symbol), one subagent per component invoking `linus`, one conformance subagent against the same requirements, then verify each finding in the code before fixing. |
+| `my-utils:super-quick` | Authored in my-utils — `./setup.sh` is the fix. Still missing: stay in this tier and make the known fix here; diagnosis is a superset of the chore flow. Never skip the review. |
+| `my-utils:new-feature` | Authored in my-utils — `./setup.sh` is the fix. Still missing: **STOP.** Report what the task needs that this tier does not cover, then hand back to the user. Do not improvise past a promotion gate. |
 | `linus` | Vendored here — `./setup.sh` is the fix. Still missing: run the same per-component fan-out, each subagent reviewing against data structure, special cases, gratuitous complexity, and breakage of existing callers. |
 | `graphify` | Build the scan set with grep over the import path + symbol. Already the documented path when the repo has no graph. |
 | Kanban / `gh` (the board) | Skip every card step silently — the only dependency that degrades to nothing, because bookkeeping never gates work. |
