@@ -62,8 +62,8 @@ All six referenced superpowers skills exist upstream (`brainstorming`,
    `./setup.sh --configure` (resolves board + status field + option ids via
    `gh`). No config, no `gh`, no auth, or no board → **every card step is
    skipped silently and the rest of the tier runs unchanged.** Kanban is
-   bookkeeping; it never gates work. This also removes the hardcoded
-   `redacted-project Board` from `jot-down-task-github`.
+   bookkeeping; it never gates work. This also removes the hardcoded board
+   name from `jot-down-task-github`.
 
 5. **Every external call site declares a fallback.** Each SKILL.md that
    references an external dependency carries a `## Fallbacks` table naming what
