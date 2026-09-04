@@ -33,11 +33,20 @@ the step, it never silently skips it.
 
 | Dependency | How it is obtained | Absent → |
 |---|---|---|
-| `superpowers` | `./setup.sh --with-deps` → Claude plugin marketplace | each tier runs the step inline; the invariant (no proof no commit, no fix before root cause) still holds |
+| `superpowers` | `./setup.sh --with-deps` → the official Claude plugin marketplace, with a silent fallback (see below) | each tier runs the step inline; the invariant (no proof no commit, no fix before root cause) still holds |
 | `gsd-core` | `./setup.sh --with-deps` → `npx @opengsd/gsd-core@latest --claude --global` | escalation exits STOP and report instead of handing off |
 | `linus` | vendored in `vendor/skills/`; plain `./setup.sh` links it | n/a once linked |
 | `graphify` | not installed here | review scan sets fall back to grep |
 | Kanban (`gh` + a board) | `./setup.sh --configure` | every card step is skipped silently; the tier runs unchanged |
+
+`--with-deps` is the only step that installs anything, and it fetches from
+three parties. If the official `superpowers` install fails for any reason —
+including a transient network error — `setup.sh` falls back to the third-party
+`obra/superpowers-marketplace` without saying so, and that registration
+persists after setup exits. `gsd-core` is fetched unpinned at `@latest`, so it
+re-resolves on every run. Plain `./setup.sh` only creates symlinks and touches
+no network; `--configure` reads your own board over the network but installs
+nothing.
 
 Run `./doctor.sh` to see the real state. It reports, and never installs or
 fails. It also distinguishes a plugin that is **installed but disabled** —
