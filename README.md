@@ -83,10 +83,11 @@ up through the symlink with no re-run.
 ./tests/test-kanban.sh     # board helper: optionality and id threading
 ./tests/test-doctor.sh     # doctor reports, never gates
 ./tests/test-fallbacks.sh  # every dependency has a declared fallback
+./tests/test-sandbox.sh    # no suite writes into the real $HOME
 ```
 
-Each prints `PASS`. Run all four after any change to `setup.sh`, `doctor.sh`,
-`bin/`, or a skill's dependency list.
+Each prints `PASS`. Run all five after any change to `setup.sh`, `doctor.sh`,
+`bin/`, a test suite, or a skill's dependency list.
 
 ## Skills
 

@@ -17,6 +17,7 @@ edit.
 ./tests/test-kanban.sh     # must print PASS — run after ANY bin/kanban.sh change
 ./tests/test-doctor.sh     # must print PASS — run after ANY doctor.sh change
 ./tests/test-fallbacks.sh  # must print PASS — run after ANY change to a skill's dependencies
+./tests/test-sandbox.sh    # must print PASS — run after ANY tests/, setup.sh, doctor.sh or bin/ change
 ```
 
 The only automated check on skill *content* is the fallback drift guard. Flow
@@ -104,7 +105,7 @@ tweak a skill        → /my-utils:super-quick
 new skill / redesign → docs/ design note (see docs/design.md, docs/bugfix-design.md)
                        → write SKILL.md → ./setup.sh
                        → ./tests/test-fallbacks.sh → /linus → commit
-shell (bin/, tests/,  → edit → the matching tests/*.sh prints PASS
+shell (bin/, tests/,  → edit → the matching tests/*.sh + test-sandbox.sh pass
 setup.sh, doctor.sh)    → /linus → commit
 ```
 

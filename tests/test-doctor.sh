@@ -6,6 +6,10 @@ fail() { echo "FAIL: $*"; exit 1; }
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+# HOME is sandboxed for the whole suite, not per call site: setup.sh, doctor.sh
+# and bin/kanban.sh each derive paths from it, and an invocation that forgets one
+# MY_UTILS_* override would otherwise reach the real ~/.claude.
+export HOME="$tmp/home"; mkdir -p "$HOME"
 mkdir -p "$tmp/skills"
 
 # T11 — everything missing: doctor diagnoses, it does not gate

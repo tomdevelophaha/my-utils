@@ -6,7 +6,10 @@ fail() { echo "FAIL: $*"; exit 1; }
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$tmp/home"
+# HOME is sandboxed for the whole suite, not per call site: setup.sh, doctor.sh
+# and bin/kanban.sh each derive paths from it, and an invocation that forgets one
+# MY_UTILS_* override would otherwise reach the real ~/.claude.
+export HOME="$tmp/home"; mkdir -p "$HOME"
 
 # The vendored dependency must actually exist; every tier's linus fallback and
 # doctor.sh both assume it does.
@@ -16,7 +19,7 @@ src="$tmp/src"; vnd="$tmp/vendor"; tgt="$tmp/target"
 mkdir -p "$src/skill-a" "$vnd/linus" "$tgt"
 mkdir -p "$tgt/skill-b"   # real dir that must NOT be clobbered
 
-run() { env HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+run() { env MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
         MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" "$@"; }
 
 run
@@ -48,8 +51,8 @@ run --with-deeps >/dev/null 2>&1 && fail "T14: a typo'd flag exited 0, so a user
 # T12 — the kanban helper is installed at a stable absolute path, because
 # skills execute from the user's project directory, not from this repo.
 helper="$tmp/home/.claude/my-utils/kanban.sh"
-env HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
-    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh >/dev/null
+env MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" >/dev/null
 [[ -e "$helper" ]] || fail "T12: helper not installed at ~/.claude/my-utils/kanban.sh"
 [[ -x "$helper" ]] || fail "T12: installed helper is not executable"
 [[ -L "$helper" ]] || fail "T12: helper is not a symlink"
@@ -73,14 +76,14 @@ chmod +x "$bin/claude" "$bin/npx"
 # the absence of words. The old version stripped PATH so the install branches
 # were unreachable, and passed even when with_deps ran on every invocation.
 : > "$log"
-env PATH="$bin:/usr/bin:/bin" HOME="$tmp/home" MY_UTILS_SKILLS_DIR="$src" \
+env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" \
     MY_UTILS_VENDOR_DIR="$vnd" MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" >/dev/null
 [[ ! -s "$log" ]] || fail "T3: the default run invoked an installer: $(cat "$log")"
 
 # T5 — --with-deps issues the verified non-interactive commands
 : > "$log"
 env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
-    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps >/dev/null
 grep -q -- 'plugin install superpowers@claude-plugins-official --yes' "$log" \
   || fail "T5: superpowers install command wrong or missing"
 grep -q -- '@opengsd/gsd-core@latest --claude --global' "$log" \
@@ -92,7 +95,7 @@ grep -q -- 'npx --yes' "$log" \
 mkdir -p "$tgt/gsd-quick" "$tgt/superpowers"
 : > "$log"
 env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
-    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps >/dev/null
 [[ ! -s "$log" ]] || fail "T4: reinstalled deps that were already present: $(cat "$log")"
 
 # T5b — a disabled plugin is enabled, never reinstalled
@@ -106,7 +109,7 @@ chmod +x "$bin/claude"
 rm -rf "$tgt/superpowers"
 : > "$log"
 env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
-    MY_UTILS_TARGET_DIR="$tgt" bash ./setup.sh --with-deps >/dev/null
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps >/dev/null
 grep -q 'plugin enable' "$log" || fail "T5b: did not enable the disabled plugin"
 grep -q 'plugin install' "$log" && fail "T5b: reinstalled a plugin that was merely disabled"
 

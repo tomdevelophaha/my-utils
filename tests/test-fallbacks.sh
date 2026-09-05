@@ -61,6 +61,10 @@ check() {   # $1 = SKILL.md ; prints failures, returns 1 if any
 
 # --- self-test: one undeclared dependency of EVERY supported form -----------
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+# HOME is sandboxed for the whole suite, not per call site: setup.sh, doctor.sh
+# and bin/kanban.sh each derive paths from it, and an invocation that forgets one
+# MY_UTILS_* override would otherwise reach the real ~/.claude.
+export HOME="$tmp/home"; mkdir -p "$HOME"
 selftest_fail() { echo "FAIL: $*"; exit 1; }
 
 cat > "$tmp/undeclared.md" <<'FIX'
