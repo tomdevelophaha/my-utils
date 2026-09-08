@@ -16,6 +16,7 @@ edit.
 ```bash
 ./setup.sh                 # link skills/* and vendor/skills/* (idempotent, offline)
 ./setup.sh --with-deps     # also install superpowers + gsd-core (opt-in, network)
+#   --allow-third-party-marketplace  # let a failed official install fall back to obra/*
 ./setup.sh --configure     # resolve this machine's Kanban board into ~/.claude/my-utils.config
 ./doctor.sh                # report what is present, missing, or disabled
 ./tests/test-setup.sh      # must print PASS — run after ANY setup.sh change

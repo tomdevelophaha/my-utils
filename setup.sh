@@ -66,15 +66,33 @@ CFG
 # Install the dependencies that HAVE an upstream. Opt-in only: a plain
 # ./setup.sh must never touch the network. Anything already present is left
 # alone. A failed install is reported, not fatal — the skills degrade.
+# Read the listing block by block and anchor on the name BEFORE the '@'. A fixed
+# -A window around a grep for the name matches any plugin whose name merely
+# contains it — `notes@superpowers-marketplace` was enough to make --with-deps
+# skip installing superpowers entirely. doctor.sh:19-33 carries the same
+# algorithm; tests/test-setup.sh T5c and tests/test-doctor.sh T11d/T11e assert
+# the two agree, which is what keeps the copies from drifting apart again.
+plugin_state() {   # $1 = plugin name -> enabled | disabled | absent
+  claude plugin list 2>/dev/null | awk -v want="$1" '
+    /@/ && $0 !~ /^[[:space:]]*(Version|Scope|Status):/ {
+      cur = 0
+      for (i = 1; i <= NF; i++) {
+        if (index($i, "@")) { split($i, p, "@"); cur = (p[1] == want); break }
+      }
+      next
+    }
+    cur && /Status:/ {
+      print (index($0, "disabled") ? "disabled" : "enabled"); found = 1; exit
+    }
+    END { if (!found) print "absent" }'
+}
+
 with_deps() {
   local sp_state=absent
   if [[ -d "$TARGET_DIR/superpowers" ]]; then
     sp_state=enabled
   elif command -v claude >/dev/null 2>&1; then
-    sp_state="$(claude plugin list 2>/dev/null | grep -A3 -i superpowers || true)"
-    if [[ -z "$sp_state" ]]; then sp_state=absent
-    elif grep -qi disabled <<<"$sp_state"; then sp_state=disabled
-    else sp_state=enabled; fi
+    sp_state="$(plugin_state superpowers)"
   fi
 
   if [[ "$sp_state" == enabled ]]; then
@@ -85,11 +103,22 @@ with_deps() {
     claude plugin enable superpowers@claude-plugins-official 2>/dev/null \
       || echo "  failed — enable by hand: claude plugin enable superpowers@claude-plugins-official" >&2
   elif command -v claude >/dev/null 2>&1; then
-    echo "installing: superpowers"
-    claude plugin install superpowers@claude-plugins-official --yes 2>/dev/null \
-      || { claude plugin marketplace add obra/superpowers-marketplace 2>/dev/null \
-           && claude plugin install superpowers@superpowers-marketplace --yes 2>/dev/null; } \
-      || echo "  failed — install by hand: claude plugin install superpowers@claude-plugins-official" >&2
+    echo "installing: superpowers (source: claude-plugins-official)"
+    # stderr is NOT suppressed: the reason the official install failed is the
+    # only thing that tells a user whether to retry or to act. And the fallback
+    # below is opt-in, because it registers a third-party plugin source that
+    # outlives this run and the trigger here can be a transient network blip.
+    if ! claude plugin install superpowers@claude-plugins-official --yes; then
+      if [[ $ALLOW_THIRD_PARTY -eq 1 ]]; then
+        echo "  official install failed — falling back to the third-party source obra/superpowers-marketplace (--allow-third-party-marketplace)" >&2
+        claude plugin marketplace add obra/superpowers-marketplace \
+          && claude plugin install superpowers@superpowers-marketplace --yes \
+          || echo "  failed — install by hand: claude plugin install superpowers@claude-plugins-official" >&2
+      else
+        echo "  failed — retry, or install by hand: claude plugin install superpowers@claude-plugins-official" >&2
+        echo "  a third-party source (obra/superpowers-marketplace) also publishes it; setup.sh will NOT register it unless you pass --allow-third-party-marketplace" >&2
+      fi
+    fi
   else
     echo "skipped: superpowers (no claude CLI on PATH)" >&2
   fi
@@ -105,16 +134,17 @@ with_deps() {
   fi
 }
 
-DO_CONFIGURE=0; DO_DEPS=0; PROJECT_ARG=1
+DO_CONFIGURE=0; DO_DEPS=0; PROJECT_ARG=1; ALLOW_THIRD_PARTY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --configure) DO_CONFIGURE=1; [[ "${2:-}" =~ ^[0-9]+$ ]] && { PROJECT_ARG="$2"; shift; } ;;
     --with-deps) DO_DEPS=1 ;;
+    --allow-third-party-marketplace) ALLOW_THIRD_PARTY=1 ;;
     -h|--help)
-      echo "usage: setup.sh [--with-deps] [--configure [project-number]]"; exit 0 ;;
+      echo "usage: setup.sh [--with-deps [--allow-third-party-marketplace]] [--configure [project-number]]"; exit 0 ;;
     *)
       echo "setup.sh: unknown argument '$1'" >&2
-      echo "usage: setup.sh [--with-deps] [--configure [project-number]]" >&2
+      echo "usage: setup.sh [--with-deps [--allow-third-party-marketplace]] [--configure [project-number]]" >&2
       exit 2 ;;
   esac
   shift

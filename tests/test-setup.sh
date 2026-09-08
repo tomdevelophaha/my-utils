@@ -113,4 +113,55 @@ env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$v
 grep -q 'plugin enable' "$log" || fail "T5b: did not enable the disabled plugin"
 grep -q 'plugin install' "$log" && fail "T5b: reinstalled a plugin that was merely disabled"
 
+# T5c — a plugin merely NAMED like superpowers is not superpowers. The old
+# `grep -A3 -i superpowers` matched any line containing the word anywhere in the
+# listing, so `notes@superpowers-marketplace` made --with-deps skip the install
+# entirely. doctor.sh solved this already; setup.sh must give the same answer.
+cat > "$bin/claude" <<STUB
+#!/usr/bin/env bash
+echo "claude \$*" >> "$log"
+[[ "\$*" == *"plugin list"* ]] && printf '  notes@superpowers-marketplace\\n    Status: enabled\\n'
+exit 0
+STUB
+chmod +x "$bin/claude"
+rm -rf "$tgt/superpowers"
+: > "$log"
+env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps >/dev/null 2>&1
+grep -q 'plugin install superpowers' "$log" \
+  || fail "T5c: a plugin named *superpowers-marketplace was mistaken for superpowers itself"
+
+# T5d — when the official install fails, the third-party marketplace is NOT added
+# behind the user's back, and the real error is not swallowed. The failure can be
+# a transient network blip, and `marketplace add` outlives the setup run.
+cat > "$bin/claude" <<STUB
+#!/usr/bin/env bash
+echo "claude \$*" >> "$log"
+case "\$*" in
+  *"plugin list"*) exit 0 ;;
+  *"install superpowers@claude-plugins-official"*) echo "error: network unreachable" >&2; exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB
+chmod +x "$bin/claude"
+: > "$log"
+out="$(env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps 2>&1)"
+grep -q 'marketplace add' "$log" \
+  && fail "T5d: silently registered a third-party marketplace after a transient failure"
+grep -qi 'network unreachable' <<<"$out" \
+  || fail "T5d: swallowed the real install error, so the user cannot tell what failed"
+grep -qi 'obra/superpowers-marketplace' <<<"$out" \
+  || fail "T5d: did not name the third-party option it is declining to take"
+
+# T5e — the fallback still exists, but only when explicitly asked for, and it says so
+: > "$log"
+out="$(env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+    MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps \
+    --allow-third-party-marketplace 2>&1)"
+grep -q 'marketplace add obra/superpowers-marketplace' "$log" \
+  || fail "T5e: opting in did not reach the third-party marketplace"
+grep -qi 'third-party' <<<"$out" \
+  || fail "T5e: used a third-party source without saying so"
+
 echo "PASS"
