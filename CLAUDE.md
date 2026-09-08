@@ -1,4 +1,8 @@
-# CLAUDE.md — my-utils (private skill library · brownfield / per-visit finite)
+# CLAUDE.md — my-utils (public skill library · brownfield / per-visit finite)
+
+**This repo is public (MIT).** Nothing written here — file contents, commit
+messages, design notes — may name a private project, a board or project id, or
+a machine-local path. Its history was rewritten once to remove exactly that.
 
 Markdown skill definitions, plus shell in exactly three places: `bin/` for
 helpers several skills share, `tests/` for the suites, and the two root
@@ -27,9 +31,11 @@ every referenced skill, command, and path exists — then run
 
 ## Hard constraints
 
-- Edit `skills/<name>/SKILL.md` in this repo. Never edit
-  `~/.claude/skills/<name>` — it is a symlink back here, and editing through it
-  hides the change from git.
+- Edit `skills/<name>/SKILL.md` in this repo — or
+  `vendor/skills/<name>/SKILL.md` for a name the tiers invoke bare (`linus`,
+  first-party text kept there because `skills/` names are namespaced). Never
+  edit `~/.claude/skills/<name>` — it is a symlink back here, and editing
+  through it hides the change from git.
 - Directory name is bare (`bugfix`); frontmatter `name:` is namespaced
   (`my-utils:bugfix`). Never prefix the directory.
 - Added a new `skills/<name>/` directory → run `./setup.sh` before claiming it
@@ -56,10 +62,11 @@ Every machine is assumed to be missing something. See `docs/portability-design.m
   `~/.claude/my-utils/kanban.sh` and `~/.claude/my-utils/doctor.sh`.
 - **Every external dependency a skill names needs a row in that skill's
   `## Fallbacks` table.** `tests/test-fallbacks.sh` enforces this for the
-  dependency families it knows: `superpowers:*`, `gsd-*`, `linus`, `graphify`,
-  and the Kanban board (`kanban`/`gh`). A dependency outside those names is
-  invisible to it — **add the pattern when you add the dependency**, or the
-  guard silently stops guarding.
+  dependency families it knows: `superpowers:*`, `gsd-*`, `my-utils:*`,
+  `linus`, `graphify`, and the Kanban board (`kanban`/`gh`). A skill that names
+  *itself* — an escalation exit back to its own tier — is excluded and needs no
+  row. A dependency outside those names is invisible to the guard — **add the
+  pattern when you add the dependency**, or it silently stops guarding.
 - **A missing dependency degrades the step; it never silently skips it.** Keep
   the invariant, drop the mechanism — without the TDD skill you still write the
   failing test first. Two exceptions: escalation exits (`/gsd-*`) **STOP**

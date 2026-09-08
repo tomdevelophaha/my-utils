@@ -17,8 +17,9 @@ cd ~/Desktop/Project/claude-skills
 ```
 
 `setup.sh` symlinks every `skills/*/` and `vendor/skills/*/` into
-`~/.claude/skills/`, and installs the Kanban helper at
-`~/.claude/my-utils/kanban.sh`. It is idempotent, and it never clobbers a real
+`~/.claude/skills/`, and installs the two helpers a skill can reach from any
+project directory at `~/.claude/my-utils/kanban.sh` and
+`~/.claude/my-utils/doctor.sh`. It is idempotent, and it never clobbers a real
 directory already sitting at the target name — it prints `skip:` and moves on.
 Override the paths with `MY_UTILS_SKILLS_DIR` / `MY_UTILS_VENDOR_DIR` /
 `MY_UTILS_TARGET_DIR`.
@@ -55,9 +56,9 @@ because the fix differs (`claude plugin enable` vs. install).
 
 `tests/test-fallbacks.sh` fails if any skill names a dependency without
 declaring a fallback for it, so this table cannot quietly drift out of date —
-for the dependency families it knows (`superpowers:*`, `gsd-*`, `linus`,
-`graphify`, `kanban`/`gh`). Adding a dependency outside those names means
-adding its pattern to the guard too.
+for the dependency families it knows (`superpowers:*`, `gsd-*`, `my-utils:*`,
+`linus`, `graphify`, `kanban`/`gh`; a skill naming itself is excluded). Adding a
+dependency outside those names means adding its pattern to the guard too.
 
 ## Kanban is optional
 
@@ -110,10 +111,11 @@ resumes with `resume <topic>`; `long-running-job` keeps a job file and resumes
 with `resume <slug>`. Both reconcile against `git log` first — reality wins
 over the file.
 `super-quick` runs the micro version — it only moves a card that already
-matches, and reviews inline with `linus`. The three heavier tiers
-find-or-create the card, delegate the review to `fan-out-review`, and delegate
-execution to superpowers (brainstorming, TDD, executing-plans) with breakdown
-by GSD.
+matches, and reviews inline with `linus`. All three heavier tiers
+find-or-create the card and delegate the review to `fan-out-review`. `bugfix`
+delegates execution to superpowers systematic-debugging + TDD; `new-feature`
+and `long-running-job` add brainstorming and executing-plans, with breakdown by
+GSD.
 
 ### Shared steps
 
@@ -155,7 +157,7 @@ my-utils/
 ├── doctor.sh            # what this machine has and what it is missing
 ├── bin/kanban.sh        # the one code path for the optional Kanban board
 ├── skills/<name>/       # SKILL.md (+ optional references/)
-├── vendor/skills/       # third-party skills with no installable upstream
+├── vendor/skills/       # skills linked under their bare name (provenance: vendor/README.md)
 ├── docs/                # design records and plans
-└── tests/               # installer, kanban, doctor, and fallback-drift tests
+└── tests/               # the five suites; see ## Test
 ```

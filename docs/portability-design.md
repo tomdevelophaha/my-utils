@@ -45,6 +45,7 @@ All six referenced superpowers skills exist upstream (`brainstorming`,
      SKILL.md with no upstream anywhere, and it backs a step every tier marks
      "never skip". A mandatory gate may not depend on a file that exists on
      exactly one laptop. Provenance is unknown; it is carried, not forked.
+     *(Superseded 2026-09: rewritten as first-party text — see `vendor/README.md`.)*
    - **graphify** → untouched. Already conditional in every call site.
 
 2. **Vendored deps live outside `skills/`.** `skills/` stays exactly what
@@ -81,13 +82,15 @@ All six referenced superpowers skills exist upstream (`brainstorming`,
    | `superpowers:executing-plans` | execute the plan task-by-task, one atomic commit per task |
    | `superpowers:writing-plans` | write the plan with the task table + test list by hand |
    | `superpowers:using-git-worktrees` | `git worktree add` directly |
-   | `linus` | review against the vendored copy's five layers |
+   | `linus` | review against the vendored copy's criteria *(2026-09: the five-layer structure went in the rewrite; shipped rows name data structure, special cases, gratuitous complexity, breakage of callers)* |
    | `/gsd-debug`, `/gsd-quick`, `/gsd-plan-phase` | **STOP** and report — escalation exits are handoffs, so improvising past them defeats the gate. Tell the user to run `./setup.sh --with-deps`. |
    | Kanban | skip silently |
 
 6. **A drift guard makes the contract enforceable.** `tests/test-fallbacks.sh`
-   extracts every external reference from every SKILL.md and fails if any lacks
-   a row in that file's `## Fallbacks` table. This is the check that would have
+   extracts every reference belonging to a known dependency family
+   (`superpowers:*`, `gsd-*`, `my-utils:*`, `linus`, `graphify`, `kanban`/`gh`)
+   from every SKILL.md and fails if any lacks a row in that file's
+   `## Fallbacks` table. A family the pattern does not name is invisible to it. This is the check that would have
    caught superpowers rotting unnoticed, and it is what keeps a future skill
    from adding a dependency without a degradation path.
 
