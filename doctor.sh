@@ -61,6 +61,15 @@ else
   miss linus "run ./setup.sh  (vendored here; linking it is all that is needed)"
 fi
 
+# Authored here, but three tiers name it in their Fallbacks tables and it only
+# installs when setup.sh has run — exactly the "present on one machine" failure
+# the vendored linus check exists to catch.
+if [[ -e "$TARGET_DIR/fan-out-review" ]]; then
+  ok fan-out-review "shared review step: bugfix, new-feature, long-running-job"
+else
+  miss fan-out-review "run ./setup.sh  (authored here; linking it is all that is needed)"
+fi
+
 echo
 echo "Kanban (optional — every card step is skipped when absent):"
 if [[ ! -f "$CONFIG" ]]; then

@@ -20,7 +20,7 @@ rc=$?
 set -e
 [[ $rc -eq 0 ]] || fail "T11: exited $rc with dependencies missing — doctor must report, not fail"
 
-for dep in superpowers gsd linus kanban; do
+for dep in superpowers gsd linus fan-out-review kanban; do
   grep -qE "^ +MISSING +$dep" <<<"$out" || fail "T11: $dep is absent but not reported MISSING"
 done
 grep -q -- '--with-deps' <<<"$out" || fail "T11: no install command offered for the missing deps"
@@ -28,11 +28,12 @@ grep -q -- '--configure' <<<"$out" || fail "T11: no fix offered for the unconfig
 grep -qiE 'missing|not installed|absent' <<<"$out" || fail "T11: does not say anything is missing"
 
 # T11b — present dependencies are reported as present
-mkdir -p "$tmp/skills/superpowers" "$tmp/skills/gsd-quick" "$tmp/skills/linus"
+mkdir -p "$tmp/skills/superpowers" "$tmp/skills/gsd-quick" "$tmp/skills/linus" \
+         "$tmp/skills/fan-out-review"
 out="$(env PATH=/usr/bin:/bin MY_UTILS_TARGET_DIR="$tmp/skills" \
        MY_UTILS_CONFIG="$tmp/nope.config" bash "$ROOT/doctor.sh" 2>&1)" \
   || fail "T11b: exited non-zero"
-for dep in superpowers gsd linus; do
+for dep in superpowers gsd linus fan-out-review; do
   grep -qE "^ +ok +$dep" <<<"$out" || fail "T11b: $dep is present but not reported ok"
 done
 
