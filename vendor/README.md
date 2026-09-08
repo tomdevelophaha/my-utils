@@ -1,18 +1,17 @@
 # vendor/
 
-Third-party skills this library depends on that have no installable upstream.
+Skills installed under their original bare, un-namespaced names, because the
+skills in `skills/` invoke them by those names rather than by a `my-utils:`
+prefix. Most are third-party and carried as-is; a row that says otherwise is
+first-party text kept here only for its name.
 
 `setup.sh` symlinks `vendor/skills/*` into `~/.claude/skills/` alongside the
 skills in `skills/`, using the same never-clobber rule — a machine that already
 has its own copy under that name keeps it.
 
-Everything here is carried, not authored. Directory names stay bare and
-un-namespaced, because the skills in `skills/` invoke them by their original
-names.
-
-| Skill | Why it is carried | Provenance |
+| Skill | Why it lives here | Provenance |
 |---|---|---|
-| `linus` | Every work tier marks the `/linus` review "never skip". A mandatory gate cannot depend on a file that exists on one machine. | Unknown — found as a plain directory in `~/.claude/skills/` with no git remote and no attribution. |
+| `linus` | Every work tier marks its review step "never skip". A mandatory gate cannot depend on a file that exists on one machine, and the bare name is what those tiers invoke. | First-party. Rewritten from scratch 2026-09. The previous text was found as a plain directory in `~/.claude/skills/` with no remote, licence, or attribution — unpublishable, so it was replaced rather than redistributed. The review criteria are Linus Torvalds' publicly stated engineering principles; the wording here is this repo's own. |
 
 Dependencies that DO have an upstream are installed by `./setup.sh --with-deps`
 instead of being vendored: `superpowers` (Claude plugin marketplace) and
