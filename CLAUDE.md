@@ -2,7 +2,8 @@
 
 **This repo is public (MIT).** Nothing written here — file contents, commit
 messages, design notes — may name a private project, a board or project id, or
-a machine-local path. Its history was rewritten once to remove exactly that.
+a machine-local path. Its history has already been rewritten to remove exactly
+that.
 
 Markdown skill definitions, plus shell in exactly three places: `bin/` for
 helpers several skills share, `tests/` for the suites, and the two root

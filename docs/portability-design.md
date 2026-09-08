@@ -50,7 +50,9 @@ All six referenced superpowers skills exist upstream (`brainstorming`,
 
 2. **Vendored deps live outside `skills/`.** `skills/` stays exactly what
    CLAUDE.md says it is — skills authored here, namespaced `my-utils:*`.
-   `vendor/skills/` carries third-party skills under their own bare names.
+   `vendor/skills/` carries skills under their own bare names.
+   *(As written this said "third-party skills"; superseded 2026-09 — its one
+   occupant is now first-party. The bare-name rule is unchanged.)*
    `setup.sh` links both, and its existing never-clobber rule means a machine
    with a real `~/.claude/skills/linus` keeps its own copy.
 

@@ -112,10 +112,11 @@ with `resume <slug>`. Both reconcile against `git log` first — reality wins
 over the file.
 `super-quick` runs the micro version — it only moves a card that already
 matches, and reviews inline with `linus`. All three heavier tiers
-find-or-create the card and delegate the review to `fan-out-review`. `bugfix`
-delegates execution to superpowers systematic-debugging + TDD; `new-feature`
-and `long-running-job` add brainstorming and executing-plans, with breakdown by
-GSD.
+find-or-create the card and delegate the review to `fan-out-review`. They differ
+in execution: `bugfix` runs superpowers systematic-debugging then TDD;
+`new-feature` adds brainstorming up front and GSD for the breakdown, then
+executing-plans; `long-running-job` never plans at all — it refuses to start
+without an approved plan and only runs executing-plans + TDD per unit.
 
 ### Shared steps
 
