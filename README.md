@@ -34,7 +34,7 @@ the step, it never silently skips it.
 
 | Dependency | How it is obtained | Absent → |
 |---|---|---|
-| `superpowers` | `./setup.sh --with-deps` → the official Claude plugin marketplace only (see below) | each tier runs the step inline; the invariant (no proof no commit, no fix before root cause) still holds |
+| `superpowers` | `./setup.sh --with-deps` → the official Claude plugin marketplace; a third-party source only with `--allow-third-party-marketplace` (see below) | each tier runs the step inline; the invariant (no proof no commit, no fix before root cause) still holds |
 | `gsd-core` | `./setup.sh --with-deps` → `npx @opengsd/gsd-core@latest --claude --global` | escalation exits STOP and report instead of handing off |
 | `linus` | vendored in `vendor/skills/`; plain `./setup.sh` links it | n/a once linked |
 | `graphify` | not installed here | review scan sets fall back to grep |
@@ -46,9 +46,10 @@ else, unless you ask. A third-party source (`obra/superpowers-marketplace`) also
 publishes superpowers, but `setup.sh` will not register it unless you pass
 `--allow-third-party-marketplace`; registering a plugin source outlives the
 setup run, and the trigger would otherwise be a transient network error. When
-the official install fails you get the real error and both options, not silence.
-`gsd-core` is fetched unpinned at `@latest`, so it re-resolves on every run. Plain `./setup.sh` only creates symlinks and touches
-no network; `--configure` reads your own board over the network but installs
+the official install fails you get the real error and both options, not
+silence.
+`gsd-core` is fetched unpinned at `@latest`, so it re-resolves on every run.
+Plain `./setup.sh` only creates symlinks and touches no network; `--configure` reads your own board over the network but installs
 nothing.
 
 Run `./doctor.sh` to see the real state. It reports, and never installs or

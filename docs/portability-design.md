@@ -38,6 +38,10 @@ All six referenced superpowers skills exist upstream (`brainstorming`,
      `claude plugin install superpowers@claude-plugins-official --yes`,
      falling back to `claude plugin marketplace add obra/superpowers-marketplace`
      when the official marketplace is unavailable.
+     *(Superseded 2026-09: the fallback is opt-in behind
+     `--allow-third-party-marketplace`. Registering a plugin source outlives the
+     run, and the trigger was any non-zero exit — a transient network error was
+     enough. See README "Dependencies".)*
    - **gsd** → `npx @opengsd/gsd-core@latest --claude --global`. The bare
      installer is interactive; those two flags are the documented
      non-interactive path.

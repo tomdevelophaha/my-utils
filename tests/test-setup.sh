@@ -154,14 +154,77 @@ grep -qi 'network unreachable' <<<"$out" \
 grep -qi 'obra/superpowers-marketplace' <<<"$out" \
   || fail "T5d: did not name the third-party option it is declining to take"
 
-# T5e — the fallback still exists, but only when explicitly asked for, and it says so
+# T5e — the fallback still exists, but only when explicitly asked for, and it says
+# so. Its own stub: inheriting T5d's would make this assert whatever that one
+# happens to stub next.
+cat > "$bin/claude" <<STUB
+#!/usr/bin/env bash
+echo "claude \$*" >> "$log"
+case "\$*" in
+  *"plugin list"*) exit 0 ;;
+  *"install superpowers@claude-plugins-official"*) echo "error: network unreachable" >&2; exit 1 ;;
+  *) exit 0 ;;
+esac
+STUB
+chmod +x "$bin/claude"
 : > "$log"
 out="$(env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
     MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps \
     --allow-third-party-marketplace 2>&1)"
 grep -q 'marketplace add obra/superpowers-marketplace' "$log" \
   || fail "T5e: opting in did not reach the third-party marketplace"
+grep -q -- 'plugin install superpowers@superpowers-marketplace --yes' "$log" \
+  || fail "T5e: registered the third-party source but never installed from it"
 grep -qi 'third-party' <<<"$out" \
   || fail "T5e: used a third-party source without saying so"
+
+# T5f — setup.sh and doctor.sh each carry a copy of plugin_state, and nothing else
+# forces them to agree: T5c only exercises setup.sh, test-doctor.sh only doctor.sh.
+# A divergence is invisible to both suites and shows up as setup.sh skipping an
+# install doctor.sh says is missing. Feed one fixture set to both and diff.
+verdict() {   # $1 = script (setup|doctor), $2 = listing file -> enabled|disabled|absent|?
+  cat > "$bin/claude" <<STUB
+#!/usr/bin/env bash
+[[ "\$*" == *"plugin list"* ]] && cat "$2"
+exit 0
+STUB
+  chmod +x "$bin/claude"
+  local o
+  if [[ "$1" == setup ]]; then
+    o="$(env PATH="$bin:/usr/bin:/bin" MY_UTILS_SKILLS_DIR="$src" MY_UTILS_VENDOR_DIR="$vnd" \
+         MY_UTILS_TARGET_DIR="$tgt" bash "$ROOT/setup.sh" --with-deps 2>&1)"
+    case "$o" in
+      *"present: superpowers"*)    echo enabled  ;;
+      *"enabling: superpowers"*)   echo disabled ;;
+      *"installing: superpowers"*) echo absent   ;;
+      *)                           echo "?"      ;;
+    esac
+  else
+    o="$(env PATH="$bin:/usr/bin:/bin" MY_UTILS_TARGET_DIR="$tgt" \
+         MY_UTILS_CONFIG="$tmp/none.config" bash "$ROOT/doctor.sh" 2>&1)"
+    case "$o" in
+      *"ok       superpowers"*)  echo enabled  ;;
+      *"DISABLED superpowers"*)  echo disabled ;;
+      *"MISSING  superpowers"*)  echo absent   ;;
+      *)                         echo "?"      ;;
+    esac
+  fi
+}
+rm -rf "$tgt/superpowers"
+fx="$tmp/fx"; mkdir -p "$fx"
+printf '  superpowers@claude-plugins-official\n    Status: enabled\n'      > "$fx/exact"
+printf '  notes@superpowers-marketplace\n    Status: enabled\n'            > "$fx/lookalike"
+printf '  superpowers-extra@y\n    Status: enabled\n'                      > "$fx/prefix"
+printf '  superpowers@x\n    Status: disabled\n'                           > "$fx/disabled"
+printf '  superpowers@x\n    Description: a@b\n    Status: enabled\n'      > "$fx/desc-line"
+printf '  a@b\n    Status: enabled\n  superpowers@x\n    Status: enabled\n' > "$fx/not-first"
+: > "$fx/empty"
+for case in exact lookalike prefix disabled desc-line not-first empty; do
+  s="$(verdict setup "$fx/$case")"; d="$(verdict doctor "$fx/$case")"
+  [[ "$s" == "$d" ]] \
+    || fail "T5f: setup.sh and doctor.sh disagree on '$case' — setup=$s doctor=$d"
+  [[ "$s" != "?" ]] \
+    || fail "T5f: neither verdict recognised for '$case' — the parser in this test is wrong"
+done
 
 echo "PASS"

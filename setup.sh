@@ -70,8 +70,11 @@ CFG
 # -A window around a grep for the name matches any plugin whose name merely
 # contains it — `notes@superpowers-marketplace` was enough to make --with-deps
 # skip installing superpowers entirely. doctor.sh:19-33 carries the same
-# algorithm; tests/test-setup.sh T5c and tests/test-doctor.sh T11d/T11e assert
-# the two agree, which is what keeps the copies from drifting apart again.
+# algorithm. They are kept honest by tests/test-setup.sh T5f, which feeds one
+# fixture set to BOTH scripts and fails if their verdicts differ — per-suite tests
+# cannot catch that, because each only ever exercises one of the two.
+# The awk must not `exit`: setup.sh runs with -e and pipefail, so closing the pipe
+# early kills the whole installer with SIGPIPE on any long listing.
 plugin_state() {   # $1 = plugin name -> enabled | disabled | absent
   claude plugin list 2>/dev/null | awk -v want="$1" '
     /@/ && $0 !~ /^[[:space:]]*(Version|Scope|Status):/ {
@@ -81,8 +84,8 @@ plugin_state() {   # $1 = plugin name -> enabled | disabled | absent
       }
       next
     }
-    cur && /Status:/ {
-      print (index($0, "disabled") ? "disabled" : "enabled"); found = 1; exit
+    !found && cur && /Status:/ {
+      print (index($0, "disabled") ? "disabled" : "enabled"); found = 1
     }
     END { if (!found) print "absent" }'
 }
@@ -92,7 +95,9 @@ with_deps() {
   if [[ -d "$TARGET_DIR/superpowers" ]]; then
     sp_state=enabled
   elif command -v claude >/dev/null 2>&1; then
-    sp_state="$(plugin_state superpowers)"
+    # `|| true`: a claude that is unauthenticated or too old exits non-zero here,
+    # and under -e that would abort the installer over an OPTIONAL dependency.
+    sp_state="$(plugin_state superpowers || true)"
   fi
 
   if [[ "$sp_state" == enabled ]]; then
@@ -100,7 +105,7 @@ with_deps() {
   elif [[ "$sp_state" == disabled ]]; then
     # Installed but disabled ships no skills. Enable it; do not reinstall.
     echo "enabling: superpowers (installed but disabled)"
-    claude plugin enable superpowers@claude-plugins-official 2>/dev/null \
+    claude plugin enable superpowers@claude-plugins-official \
       || echo "  failed — enable by hand: claude plugin enable superpowers@claude-plugins-official" >&2
   elif command -v claude >/dev/null 2>&1; then
     echo "installing: superpowers (source: claude-plugins-official)"
@@ -149,6 +154,12 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if [[ $ALLOW_THIRD_PARTY -eq 1 && $DO_DEPS -eq 0 ]]; then
+  echo "setup.sh: --allow-third-party-marketplace only modifies --with-deps" >&2
+  echo "usage: setup.sh [--with-deps [--allow-third-party-marketplace]] [--configure [project-number]]" >&2
+  exit 2
+fi
 
 mkdir -p "$TARGET_DIR"
 

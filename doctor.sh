@@ -27,8 +27,8 @@ plugin_state() {   # $1 = plugin name -> enabled | disabled | absent
       }
       next
     }
-    cur && /Status:/ {
-      print (index($0, "disabled") ? "disabled" : "enabled"); found = 1; exit
+    !found && cur && /Status:/ {
+      print (index($0, "disabled") ? "disabled" : "enabled"); found = 1
     }
     END { if (!found) print "absent" }'
 }
