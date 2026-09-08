@@ -84,3 +84,21 @@ load at session start). Verify after the first reload.
 
 **Fallback if it doesn't survive:** add a single `.claude-plugin/plugin.json`
 (name `my-utils`) to the repo root — that's Approach C, still no `marketplace.json`.
+
+## Outcome
+
+Shipped. `docs/plans/2026-08-15-my-utils-library.md` executed across `a58b0aa`
+(idempotent symlink installer + its test), `a39b746` (quick-summary migrated
+into the repo as a symlink) and `a6d6ada` (README, .gitignore), then retired —
+git is the archive, per the closeout every tier uses.
+
+The open verification above is **resolved**: the `my-utils:` frontmatter prefix
+does survive a reload. Skills load under their bare directory name and are
+invoked as `/my-utils:<name>`, so the `.claude-plugin/plugin.json` fallback was
+never needed.
+
+The library has since grown past this note: a fourth work tier (`bugfix`), a
+shared review step (`fan-out-review`) the three heavier tiers delegate to, and
+the portability rewrite that moved every board id out of the skills — see
+`docs/bugfix-design.md`, `docs/fan-out-review-design.md` and
+`docs/portability-design.md`. The repo is public under MIT.
