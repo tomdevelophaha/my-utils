@@ -11,7 +11,7 @@ has its own copy under that name keeps it.
 
 | Skill | Why it lives here | Provenance |
 |---|---|---|
-| `linus` | Every work tier marks its review step "never skip". A mandatory gate cannot depend on a file that exists on one machine, and the bare name is what those tiers invoke. | First-party. Rewritten from scratch 2026-09. The previous text was found as a plain directory in `~/.claude/skills/` with no remote, licence, or attribution — unpublishable, so it was replaced rather than redistributed. The review criteria are Linus Torvalds' publicly stated engineering principles; the wording here is this repo's own. |
+| `linus` | Every work tier marks its review step "never skip". A mandatory gate cannot depend on a file that exists on one machine, and the bare name is what those tiers invoke. | First-party as of 2026-09. The text it replaced came from an open-source forum and reached this repo as a bare directory with no author, licence, or link attached, so there was no way to credit it correctly — it was rewritten rather than redistributed. That earlier text remains in this repo's git history. The review criteria are Linus Torvalds' publicly stated engineering principles, which anyone may restate; the wording here is this repo's own. |
 
 Dependencies that DO have an upstream are installed by `./setup.sh --with-deps`
 instead of being vendored: `superpowers` (Claude plugin marketplace) and
