@@ -1,6 +1,6 @@
 ---
 name: my-utils:quick-summary
-description: Use when the user asks what we were just doing, for a quick recap, what's next, what still needs doing, or to re-orient after returning to this session. Also invoked explicitly as /my-utils:quick-summary.
+description: Use when the user asks what we were just doing, for a quick recap, what's next, what still needs doing, or to re-orient after returning to this session. Not for gating a batch of work before it starts — when the user wants to approve task descriptions before anything is touched, that is my-utils:summarise-current-tasks. Also invoked explicitly as /my-utils:quick-summary.
 ---
 
 # Quick Summary
