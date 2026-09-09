@@ -51,11 +51,21 @@ Rejected alternatives:
   whatever its row says; already-landed work never appears as upcoming. It
   drops out and the survivors keep their original numbers.
 
-  This is the one place the approved format did not cover, and dropping tasks
-  silently produces a list that starts at 4 with nothing saying why. "Nothing
-  else" rules out a preamble, so the closing line — already the only sentence
-  carrying meta-information about the range — carries the landed range too, as
-  one sentence. When nothing has landed it is unchanged from the gold standard.
+  The approved format covers partial completion three times: reconcile against
+  `git log`, a red flag for "describing already-committed work as still ahead",
+  and a closing line built from "the real first and last task numbers" — a
+  phrase that only means anything if tasks can drop out. But its rule 1 forbids
+  "no renumbering, no merging, no omissions" outright, and a landed task cannot
+  both drop out and not be omitted. That conflict is resolved in favour of the
+  other three: landed rows drop out, and the survivors keep their plan numbers,
+  so rule 1's "no renumbering" still holds in full.
+
+  The one question genuinely left open is whether to *say* what landed.
+  Dropping rows silently produces a list starting at 4 with nothing explaining
+  the gap, and "nothing else" rules out a preamble — so the closing line,
+  already the only sentence carrying range information, names the landed range
+  as one sentence. With nothing landed it is byte-identical to the gold
+  standard's line.
 - Em dash `—` separates number from name; en dash `–` joins numeric ranges
   (`001–005`, `1–10`). The user reviews these side by side, so the two are not
   interchangeable.
