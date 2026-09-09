@@ -142,6 +142,9 @@ without an approved plan and only runs executing-plans + TDD per unit.
 - `plain-english` — rewrite a coding report for a non-engineer: a short plain
   narrative, then a detail block keeping files, root cause, what actually ran,
   and what is still at risk.
+- `summarise-current-tasks` — the approval view of a plan: two lines per task in
+  the plan's own numbering, marking only what is irreversible, secret-touching
+  or read-only, so the work can be signed off before it starts.
 
 ## Add a skill
 
