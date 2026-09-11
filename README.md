@@ -136,6 +136,10 @@ without an approved plan and only runs executing-plans + TDD per unit.
 
 ### Utilities
 
+- `claude-md-best-practice` — audit a CLAUDE.md and the whole `.claude/`
+  directory, classify the project on the greenfield/brownfield ×
+  finite/long-running matrix, and audit the declared pipeline against that
+  cell. Writes the canonical scaffold only on explicit consent.
 - `quick-summary` — one recap paragraph + a short next-steps list, nothing else.
 - `jot-down-task-github` — draft an item on this machine's configured board,
   and say so plainly when there isn't one.

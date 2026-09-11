@@ -119,8 +119,8 @@ setup.sh, doctor.sh)    → /linus → commit
 ```
 
 A change to a SKILL.md is reviewed by `/linus`; a change to this file or to the
-skill set's shape is better served by `claude-md-best-practice`, which reads
-rules as constraints rather than as code.
+skill set's shape is better served by `/my-utils:claude-md-best-practice`,
+which reads rules as constraints rather than as code.
 
 Design notes land in `docs/`; plans in `docs/plans/`. Both are committed — they
 are the only record of why a tier boundary sits where it does.
