@@ -141,6 +141,9 @@ without an approved plan and only runs executing-plans + TDD per unit.
   finite/long-running matrix, and audit the declared pipeline against that
   cell. Writes the canonical scaffold only on explicit consent.
 - `quick-summary` — one recap paragraph + a short next-steps list, nothing else.
+- `where-we-left-off` — digest of the last 10 (up to 20) Claude sessions in
+  this directory from the local transcripts, so you don't page through
+  `/resume` one by one. Status only.
 - `jot-down-task-github` — draft an item on this machine's configured board,
   and say so plainly when there isn't one.
 - `plain-english` — rewrite a coding report for a non-engineer: a short plain
